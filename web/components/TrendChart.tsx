@@ -22,8 +22,8 @@ export function TrendChart({ data }: { data: Point[] }) {
         <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={20} />
-          <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
-          <Tooltip formatter={(v) => [`$${Number(v).toFixed(0)}`, "Cost"]} />
+          <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `HK$${v}`} />
+          <Tooltip formatter={(v) => [`HK$${Number(v).toFixed(0)}`, "Cost"]} />
           <Line type="monotone" dataKey="cost" stroke="#2563eb" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>

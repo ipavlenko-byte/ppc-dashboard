@@ -1,5 +1,5 @@
 export const fmtMoney = (v: number) =>
-  v.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+  v.toLocaleString("en-US", { style: "currency", currency: "HKD", maximumFractionDigits: 2 });
 
 export const fmtInt = (v: number) => v.toLocaleString("en-US");
 
