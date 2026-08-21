@@ -40,6 +40,15 @@ const COUNTRY_NAMES = {
   2410: "South Korea",
   2356: "India",
   2076: "Brazil",
+  2156: "China",
+  2344: "Hong Kong",
+  2203: "Czechia",
+  2056: "Belgium",
+  2158: "Taiwan",
+  2376: "Israel",
+  2372: "Ireland",
+  2756: "Switzerland",
+  2040: "Austria",
 };
 
 function main() {
@@ -82,7 +91,7 @@ function syncGeo(spreadsheet, dates) {
   const rows = [];
   for (const date of dates) {
     const report = AdsApp.report(
-      `SELECT campaign.name, geographic_view.country_criterion_id,
+      `SELECT campaign.name, campaign.status, geographic_view.country_criterion_id,
               metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions
        FROM geographic_view
        WHERE segments.date = "${date}"
