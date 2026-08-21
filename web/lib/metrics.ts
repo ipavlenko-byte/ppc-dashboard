@@ -14,6 +14,27 @@ function normKey(date: string, campaign: string) {
 
 const safeDiv = (a: number, b: number) => (b > 0 ? a / b : 0);
 
+export interface MonthToDateInfo {
+  monthStart: string; // YYYY-MM-DD
+  today: string; // YYYY-MM-DD, самая свежая дата в данных
+  daysInMonth: number;
+  daysElapsed: number;
+  daysRemaining: number;
+}
+
+// "Сегодня" берём как самую свежую дату в самих данных, а не Date.now() —
+// синк идёт с задержкой в 1-3 дня, и системные часы сервера не должны решать,
+// сколько дней месяца уже "прошло" для целей пейсинга.
+export function getMonthToDateInfo<T extends { date: string }>(rows: T[]): MonthToDateInfo | null {
+  if (rows.length === 0) return null;
+  const today = rows.reduce((max, r) => (r.date > max ? r.date : max), rows[0].date);
+  const [year, month] = today.split("-").map(Number);
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const daysElapsed = Number(today.split("-")[2]);
+  return { monthStart, today, daysInMonth, daysElapsed, daysRemaining: daysInMonth - daysElapsed };
+}
+
 export function joinRows(
   ads: AdsDailyRow[],
   ga4: Ga4DailyRow[],

@@ -3,7 +3,8 @@ export const fmtMoney = (v: number) =>
 
 // HKD жёстко привязан к USD Гонконгским валютным управлением в коридоре 7.75-7.85
 // с 1983 года — фиксированный курс тут надёжен, живой API не нужен.
-const USD_PER_HKD = 1 / 7.8;
+export const HKD_PER_USD = 7.8;
+const USD_PER_HKD = 1 / HKD_PER_USD;
 
 export const fmtUsd = (v: number) =>
   (v * USD_PER_HKD).toLocaleString("en-US", {

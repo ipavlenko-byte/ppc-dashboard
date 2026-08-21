@@ -1,11 +1,22 @@
 import { getDashboardData } from "@/lib/dataSource";
-import { summarizeByCampaign, applyDateFilter, getPeriodBounds } from "@/lib/metrics";
+import {
+  summarizeByCampaign,
+  applyDateFilter,
+  getPeriodBounds,
+  getMonthToDateInfo,
+  filterByRange,
+} from "@/lib/metrics";
 import { resolveDateFilter } from "@/lib/dateFilter";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { fmtMoneyDual, fmtPct, fmtOrDash } from "@/lib/format";
+import { KpiTile } from "@/components/KpiTile";
+import { fmtMoneyDual, fmtMoney, fmtUsd, fmtInt, fmtPct, fmtOrDash, HKD_PER_USD } from "@/lib/format";
 
 export const revalidate = 300;
+
+// Общий лимит трат на аккаунт в месяц. Пока захардкожен — если понадобится
+// менять чаще или иметь разные лимиты на аккаунт, вынести в env-переменную.
+const MONTHLY_LIMIT_USD = 2200;
 
 export default async function BudgetPacingPage({
   searchParams,
@@ -33,6 +44,27 @@ export default async function BudgetPacingPage({
     })
     .sort((a, b) => (b.usage ?? 0) - (a.usage ?? 0));
 
+  const mtd = getMonthToDateInfo(allRows);
+  const monthlyLimitHkd = MONTHLY_LIMIT_USD * HKD_PER_USD;
+  let monthly: {
+    spent: number;
+    avgDailySpend: number;
+    projectedTotal: number;
+    remaining: number;
+    status: "ok" | "warning" | "critical";
+  } | null = null;
+
+  if (mtd) {
+    const monthRows = filterByRange(allRows, mtd.monthStart, mtd.today);
+    const spent = monthRows.reduce((sum, r) => sum + r.cost, 0);
+    const avgDailySpend = mtd.daysElapsed > 0 ? spent / mtd.daysElapsed : 0;
+    const projectedTotal = spent + avgDailySpend * mtd.daysRemaining;
+    const remaining = monthlyLimitHkd - spent;
+    const status =
+      projectedTotal > monthlyLimitHkd ? "critical" : projectedTotal > monthlyLimitHkd * 0.9 ? "warning" : "ok";
+    monthly = { spent, avgDailySpend, projectedTotal, remaining, status };
+  }
+
   const csvRows = pacing.map((p) => [
     p.campaign,
     p.dailyBudget,
@@ -51,6 +83,53 @@ export default async function BudgetPacingPage({
         </div>
         <DateRangePicker basePath="/budget-pacing" current={filter} />
       </div>
+
+      {monthly && mtd && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-slate-600">
+            Месячный лимит аккаунта — {mtd.today.slice(0, 7)}
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <KpiTile
+              label="Лимит на месяц"
+              value={`$${MONTHLY_LIMIT_USD.toLocaleString("en-US")}`}
+              subValue={fmtMoney(monthlyLimitHkd)}
+            />
+            <KpiTile
+              label="Потрачено с начала месяца"
+              value={fmtMoney(monthly.spent)}
+              subValue={`≈${fmtUsd(monthly.spent)}`}
+            />
+            <KpiTile
+              label="Остаток лимита"
+              value={fmtMoney(monthly.remaining)}
+              subValue={`≈${fmtUsd(monthly.remaining)}`}
+            />
+            <KpiTile
+              label="Прогноз на конец месяца"
+              value={fmtMoney(monthly.projectedTotal)}
+              subValue={`≈${fmtUsd(monthly.projectedTotal)}`}
+            />
+            <KpiTile label="Осталось дней в месяце" value={fmtInt(mtd.daysRemaining)} />
+          </div>
+          <div
+            className={
+              monthly.status === "critical"
+                ? "rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                : monthly.status === "warning"
+                  ? "rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+                  : "rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+            }
+          >
+            {monthly.status === "critical" &&
+              `🔴 При текущем темпе трат к концу месяца лимит будет превышен примерно на ${fmtMoney(monthly.projectedTotal - monthlyLimitHkd)} (≈${fmtUsd(monthly.projectedTotal - monthlyLimitHkd)}).`}
+            {monthly.status === "warning" &&
+              "🟡 При текущем темпе трат бюджет будет израсходован почти полностью к концу месяца."}
+            {monthly.status === "ok" &&
+              `🟢 При текущем темпе трат бюджета хватит до конца месяца, останется примерно ${fmtMoney(monthlyLimitHkd - monthly.projectedTotal)} (≈${fmtUsd(monthlyLimitHkd - monthly.projectedTotal)}).`}
+          </div>
+        </div>
+      )}
 
       {pacing.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
