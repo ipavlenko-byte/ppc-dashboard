@@ -9,6 +9,7 @@ import {
   DeviceDailyRow,
   GeoDailyRow,
   Ga4AdGroupDailyRow,
+  LandingPageDailyRow,
   JoinedRow,
 } from "./types";
 import {
@@ -22,6 +23,7 @@ import {
   generateMockDevices,
   generateMockGeo,
   generateMockGa4AdGroups,
+  generateMockLandingPages,
 } from "./mockData";
 import { fetchAllSheetData, sheetsConfigured } from "./sheets";
 import { joinRows } from "./metrics";
@@ -35,6 +37,7 @@ export interface DashboardData {
   devices: DeviceDailyRow[];
   geo: GeoDailyRow[];
   ga4AdGroups: Ga4AdGroupDailyRow[];
+  landingPages: LandingPageDailyRow[];
   source: "sheets" | "mock";
 }
 
@@ -50,6 +53,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       devices: data.deviceDaily,
       geo: data.geoDaily,
       ga4AdGroups: data.ga4AdGroupDaily,
+      landingPages: data.landingPagesDaily,
       source: "sheets",
     };
   }
@@ -64,6 +68,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const devices = generateMockDevices(ads);
   const geo = generateMockGeo(ads);
   const ga4AdGroups = generateMockGa4AdGroups(adGroups);
+  const landingPages = generateMockLandingPages(ads);
 
   return {
     rows: joinRows(ads, ga4, leads),
@@ -74,6 +79,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     devices,
     geo,
     ga4AdGroups,
+    landingPages,
     source: "mock",
   };
 }

@@ -15,11 +15,12 @@
 ## 2. Синхронизация Google Ads (без developer token)
 
 1. Зайдите в нужный аккаунт Google Ads → **Tools & Settings → Bulk Actions → Scripts**.
-2. Нажмите "+", вставьте содержимое [google-ads-script/sync-campaigns.js](google-ads-script/sync-campaigns.js).
+2. Нажмите "+", вставьте содержимое [google-ads-script/sync-campaigns.js](google-ads-script/sync-campaigns.js) (если уже настраивали раньше — замените код целиком, это обновлённая версия: добавились Impression Share и дневной бюджет).
 3. Замените `SHEET_ID` на ID из шага 1.
 4. Нажмите "Authorize" — скрипт запросит доступ к вашему аккаунту Google Ads (это его собственная авторизация, отдельного API-доступа не нужно).
-5. Запустите один раз вручную ("Preview" → "Run"), проверьте, что строки появились в `ads_daily`.
+5. Запустите один раз вручную ("Preview" → "Run"), проверьте, что строки появились в `ads_daily` (заголовок вкладки обновится сам, добавятся колонки `searchImpressionShare`, `searchBudgetLostIS`, `searchRankLostIS`, `dailyBudget`).
 6. Настройте расписание: в списке скриптов → "Frequency" → например ежедневно в 06:00.
+7. Impression Share есть только у Search-кампаний — у Pmax/Display/Demand Gen эти поля будут пустыми, дашборд покажет "—", это нормально.
 
 ## 2b. Детализация: группы объявлений, ключи, объявления, поисковые запросы
 
@@ -32,8 +33,8 @@
 ## 2c. Устройства и география
 
 1. В том же аккаунте Google Ads → **Bulk Actions → Scripts** → **"+"** для ещё одного, отдельного скрипта.
-2. Вставьте содержимое [google-ads-script/sync-segments.js](google-ads-script/sync-segments.js), замените `SHEET_ID`.
-3. **Preview → Run**, авторизуйте. Скрипт создаст вкладки `device_daily` и `geo_daily`.
+2. Вставьте содержимое [google-ads-script/sync-segments.js](google-ads-script/sync-segments.js) (если уже настраивали раньше — замените код целиком, добавился отчёт по посадочным страницам), замените `SHEET_ID`.
+3. **Preview → Run**, авторизуйте. Скрипт создаст вкладки `device_daily`, `geo_daily` и `landing_pages_daily`.
 4. Настройте расписание, например ежедневно в 06:30.
 5. Гео определяется по числовому ID страны из Google Ads — в скрипте зашита таблица соответствий для основных стран из кампаний Sellvia (US/CAN/UK/AUS/SG и т.д.). Если в дашборде увидите `Unknown (id)` — допишите этот ID в `COUNTRY_NAMES` внутри скрипта.
 

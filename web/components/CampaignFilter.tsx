@@ -7,20 +7,24 @@ export function CampaignFilter({
   current,
   filter,
   basePath,
+  extraParams,
 }: {
   campaigns: string[];
   current: string;
   filter: ResolvedDateFilter;
   basePath: string;
+  extraParams?: Record<string, string>;
 }) {
   return (
     <select
       value={current}
       onChange={(e) => {
-        const params: Record<string, string> =
-          filter.mode === "range" && filter.from && filter.to
+        const params: Record<string, string> = {
+          ...extraParams,
+          ...(filter.mode === "range" && filter.from && filter.to
             ? { from: filter.from, to: filter.to }
-            : { days: String(filter.days) };
+            : { days: String(filter.days) }),
+        };
         if (e.target.value) params.campaign = e.target.value;
         // Полная перезагрузка страницы вместо клиентской навигации — обходит
         // кэш роутов Next.js, который в проде иногда отдаёт устаревший RSC-payload

@@ -4,6 +4,7 @@ import { CampaignSummary } from "@/lib/metrics";
 import { AnomalyFlag } from "@/lib/anomalies";
 import { CampaignTrend, TrendLevel } from "@/lib/trends";
 import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
+import { ExportCsvButton } from "./ExportCsvButton";
 
 function TrendArrow({ level }: { level: TrendLevel }) {
   if (level === "neutral") return null;
@@ -39,6 +40,8 @@ export function CampaignsTable({
     { key: "impressions", label: "Показы", fmt: (v) => fmtInt(v as number) },
     { key: "clicks", label: "Клики", fmt: (v) => fmtInt(v as number) },
     { key: "ctr", label: "CTR", fmt: (v) => fmtPct(v as number), trendKey: "ctr" },
+    { key: "searchImpressionShare", label: "IS (Search)", fmt: (v) => fmtOrDash(v, fmtPct) },
+    { key: "dailyBudget", label: "Дневной бюджет", fmt: (v) => fmtOrDash(v, fmtMoney) },
     { key: "bounceRate", label: "Процент отказов", fmt: (v) => fmtOrDash(v, fmtPct) },
     { key: "pagesPerSession", label: "Глубина просмотра", fmt: (v) => fmtOrDash(v, fmtDecimal) },
     { key: "avgSessionDurationSec", label: "Время на сайте", fmt: (v) => fmtOrDash(v, fmtDuration) },
@@ -50,9 +53,25 @@ export function CampaignsTable({
     { key: "cost", label: "Затраты", fmt: (v) => fmtMoney(v as number) },
   ];
 
+  const csvRows = [...rows, total].map((r) => [
+    r.campaign,
+    ...cols.map((c) => {
+      const v = r[c.key];
+      return v === null ? "" : (v as number);
+    }),
+  ]);
+
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-      <table className="w-full min-w-[1300px] text-sm">
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-end">
+        <ExportCsvButton
+          filename="campaigns"
+          headers={["Кампания", ...cols.map((c) => c.label)]}
+          rows={csvRows}
+        />
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[1300px] text-sm">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">
             <th className="px-4 py-3">Кампания</th>
@@ -108,7 +127,8 @@ export function CampaignsTable({
             ))}
           </tr>
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }

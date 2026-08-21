@@ -5,6 +5,10 @@ export interface AdsDailyRow {
   clicks: number;
   cost: number;
   conversions: number; // leads (заявки)
+  searchImpressionShare: number | null; // 0-1, только для Search-кампаний
+  searchBudgetLostIS: number | null;
+  searchRankLostIS: number | null;
+  dailyBudget: number | null;
 }
 
 export interface Ga4DailyRow {
@@ -59,6 +63,10 @@ export interface GeoDailyRow extends AdMetricsBase {
   country: string;
 }
 
+export interface LandingPageDailyRow extends AdMetricsBase {
+  landingPage: string;
+}
+
 export interface Ga4AdGroupDailyRow {
   date: string;
   campaign: string;
@@ -84,4 +92,8 @@ export interface JoinedRow {
   cr: number; // conversions / clicks
   cpl: number; // cost / conversions
   cpql: number; // cost / qualifiedLeads
+  searchImpressionShare: number | null;
+  searchBudgetLostIS: number | null;
+  searchRankLostIS: number | null;
+  dailyBudget: number | null;
 }

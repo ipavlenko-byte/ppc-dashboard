@@ -4,14 +4,31 @@
  *
  * Перед запуском:
  * 1) Замените SHEET_ID на ID вашей Google-таблицы (из её URL).
- * 2) Убедитесь, что в таблице есть вкладка "ads_daily" с заголовком в первой строке:
- *    date | campaign | impressions | clicks | cost | conversions
+ * 2) Если уже настраивали раньше — просто замените код целиком, вкладка ads_daily
+ *    и её заголовок обновятся сами (добавятся колонки Impression Share и бюджета).
  * 3) Настройте расписание запуска (Scripts > ... > Schedule), например ежедневно в 06:00.
+ *
+ * Важно: metrics.search_impression_share (и связанные с ним lost IS метрики) есть только
+ * у Search-кампаний. У Performance Max/Display/Demand Gen эти поля будут пустыми — это
+ * ограничение самого Google Ads, не баг.
  */
 
 const SHEET_ID = "11VIcvXJ2BDiOod331u3RpLFMYKnMbnsDktNZ9t6OWfU";
 const TAB_NAME = "ads_daily";
 const LOOKBACK_DAYS = 3; // перезаписываем последние N дней (данные конверсий "дозревают")
+
+const HEADER = [
+  "date",
+  "campaign",
+  "impressions",
+  "clicks",
+  "cost",
+  "conversions",
+  "searchImpressionShare",
+  "searchBudgetLostIS",
+  "searchRankLostIS",
+  "dailyBudget",
+];
 
 function main() {
   const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
@@ -24,7 +41,9 @@ function main() {
 
   for (const date of dates) {
     const report = AdsApp.report(
-      `SELECT campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions
+      `SELECT campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions,
+              metrics.search_impression_share, metrics.search_budget_lost_impression_share,
+              metrics.search_rank_lost_impression_share, campaign_budget.amount_micros
        FROM campaign
        WHERE segments.date = "${date}"
        AND campaign.status = "ENABLED"`
@@ -39,6 +58,10 @@ function main() {
         Number(row["metrics.clicks"]),
         Number(row["metrics.cost_micros"]) / 1e6,
         Number(row["metrics.conversions"]),
+        parseShare(row["metrics.search_impression_share"]),
+        parseShare(row["metrics.search_budget_lost_impression_share"]),
+        parseShare(row["metrics.search_rank_lost_impression_share"]),
+        parseBudget(row["campaign_budget.amount_micros"]),
       ]);
     }
   }
@@ -53,10 +76,22 @@ function main() {
   Logger.log(`Записано строк: ${rows.length}`);
 }
 
+// Impression Share у Google Ads иногда приходит как "--" или пустая строка
+// для кампаний, где метрика неприменима (не-Search типы).
+function parseShare(v) {
+  const n = Number(v);
+  return isNaN(n) ? "" : n;
+}
+
+function parseBudget(v) {
+  const n = Number(v);
+  return isNaN(n) ? "" : n / 1e6;
+}
+
 function ensureHeader(sheet) {
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(["date", "campaign", "impressions", "clicks", "cost", "conversions"]);
-  }
+  // Перезаписываем заголовок каждый раз — идемпотентно и само "чинит" вкладки,
+  // созданные до добавления новых колонок (Impression Share, бюджет).
+  sheet.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);
 }
 
 function getDateRange(days) {

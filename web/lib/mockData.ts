@@ -9,14 +9,21 @@ import {
   DeviceDailyRow,
   GeoDailyRow,
   Ga4AdGroupDailyRow,
+  LandingPageDailyRow,
 } from "./types";
 
 const CAMPAIGNS = [
-  { name: "Sellvia_Pmax_US_CAN_UK_AUS_SG #2", baseCost: 3200, baseCtr: 0.059, baseCr: 0.266 },
-  { name: "Sellvia_pmax_page_feed - video_US_CAN", baseCost: 1300, baseCtr: 0.048, baseCr: 0.244 },
-  { name: "Sellvia_DP_US_UK_CAN_AUS_SG", baseCost: 930, baseCtr: 0.039, baseCr: 0.203 },
-  { name: "Sellvia_Search_All_US", baseCost: 750, baseCtr: 0.086, baseCr: 0.308 },
-  { name: "Sellvia_DG_US_UK_AU_CAN_2", baseCost: 460, baseCtr: 0.005, baseCr: 0.134 },
+  { name: "Sellvia_Pmax_US_CAN_UK_AUS_SG #2", baseCost: 3200, baseCtr: 0.059, baseCr: 0.266, dailyBudget: 120 },
+  { name: "Sellvia_pmax_page_feed - video_US_CAN", baseCost: 1300, baseCtr: 0.048, baseCr: 0.244, dailyBudget: 50 },
+  { name: "Sellvia_DP_US_UK_CAN_AUS_SG", baseCost: 930, baseCtr: 0.039, baseCr: 0.203, dailyBudget: 35 },
+  { name: "Sellvia_Search_All_US", baseCost: 750, baseCtr: 0.086, baseCr: 0.308, dailyBudget: 25 },
+  { name: "Sellvia_DG_US_UK_AU_CAN_2", baseCost: 460, baseCtr: 0.005, baseCr: 0.134, dailyBudget: 15 },
+];
+
+const LANDING_PAGES = [
+  "https://sellvia.com/store/",
+  "https://sellvia.com/dropshipping/",
+  "https://sellvia.com/pricing/",
 ];
 
 function seedRandom(seed: number) {
@@ -45,7 +52,19 @@ export function generateMockAds(days = 30): AdsDailyRow[] {
       const impressions = Math.round((cost / (c.baseCtr * 2.5)) * jitter);
       const clicks = Math.round(impressions * c.baseCtr * (0.9 + rand() * 0.2));
       const conversions = Math.round(clicks * c.baseCr * (0.85 + rand() * 0.3));
-      rows.push({ date, campaign: c.name, impressions, clicks, cost, conversions });
+      const isSearchCampaign = c.name.includes("Search");
+      rows.push({
+        date,
+        campaign: c.name,
+        impressions,
+        clicks,
+        cost,
+        conversions,
+        searchImpressionShare: isSearchCampaign ? Math.round((0.35 + rand() * 0.4) * 100) / 100 : null,
+        searchBudgetLostIS: isSearchCampaign ? Math.round(rand() * 0.2 * 100) / 100 : null,
+        searchRankLostIS: isSearchCampaign ? Math.round(rand() * 0.15 * 100) / 100 : null,
+        dailyBudget: c.dailyBudget,
+      });
     }
   }
   return rows;
@@ -257,6 +276,30 @@ export function generateMockGa4AdGroups(adGroups: AdGroupDailyRow[]): Ga4AdGroup
     pagesPerSession: Math.round((1.1 + rand() * 1.3) * 100) / 100,
     avgSessionDurationSec: Math.round(35 + rand() * 150),
   }));
+}
+
+export function generateMockLandingPages(ads: AdsDailyRow[]): LandingPageDailyRow[] {
+  const rand = seedRandom(37);
+  const rows: LandingPageDailyRow[] = [];
+  for (const r of ads) {
+    const shares = LANDING_PAGES.map(() => 0.2 + rand() * 0.6);
+    const impParts = splitByShare(r.impressions, shares, rand);
+    const clkParts = splitByShare(r.clicks, shares, rand);
+    const costParts = splitByShare(r.cost, shares, rand);
+    const convParts = splitByShare(r.conversions, shares, rand);
+    LANDING_PAGES.forEach((landingPage, i) => {
+      rows.push({
+        date: r.date,
+        campaign: r.campaign,
+        landingPage,
+        impressions: impParts[i],
+        clicks: clkParts[i],
+        cost: costParts[i],
+        conversions: convParts[i],
+      });
+    });
+  }
+  return rows;
 }
 
 function splitByShare(total: number, shares: number[], rand: () => number): number[] {

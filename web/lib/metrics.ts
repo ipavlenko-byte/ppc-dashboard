@@ -43,6 +43,10 @@ export function joinRows(
       cr: safeDiv(row.conversions, row.clicks),
       cpl: safeDiv(row.cost, row.conversions),
       cpql: safeDiv(row.cost, qualifiedLeads),
+      searchImpressionShare: row.searchImpressionShare,
+      searchBudgetLostIS: row.searchBudgetLostIS,
+      searchRankLostIS: row.searchRankLostIS,
+      dailyBudget: row.dailyBudget,
     };
   });
 }
@@ -62,6 +66,10 @@ export interface CampaignSummary {
   bounceRate: number | null;
   pagesPerSession: number | null;
   avgSessionDurationSec: number | null;
+  searchImpressionShare: number | null;
+  searchBudgetLostIS: number | null;
+  searchRankLostIS: number | null;
+  dailyBudget: number | null;
 }
 
 interface CampaignAccumulator extends CampaignSummary {
@@ -69,6 +77,7 @@ interface CampaignAccumulator extends CampaignSummary {
   bounceRateWeighted: number;
   pagesPerSessionWeighted: number;
   avgSessionDurationWeighted: number;
+  latestDate: string;
 }
 
 function emptyAccumulator(campaign: string): CampaignAccumulator {
@@ -87,10 +96,15 @@ function emptyAccumulator(campaign: string): CampaignAccumulator {
     bounceRate: null,
     pagesPerSession: null,
     avgSessionDurationSec: null,
+    searchImpressionShare: null,
+    searchBudgetLostIS: null,
+    searchRankLostIS: null,
+    dailyBudget: null,
     ga4Weight: 0,
     bounceRateWeighted: 0,
     pagesPerSessionWeighted: 0,
     avgSessionDurationWeighted: 0,
+    latestDate: "",
   };
 }
 
@@ -110,7 +124,23 @@ function finalizeCampaignSummary(c: CampaignAccumulator): CampaignSummary {
     bounceRate: c.ga4Weight > 0 ? c.bounceRateWeighted / c.ga4Weight : null,
     pagesPerSession: c.ga4Weight > 0 ? c.pagesPerSessionWeighted / c.ga4Weight : null,
     avgSessionDurationSec: c.ga4Weight > 0 ? c.avgSessionDurationWeighted / c.ga4Weight : null,
+    searchImpressionShare: c.searchImpressionShare,
+    searchBudgetLostIS: c.searchBudgetLostIS,
+    searchRankLostIS: c.searchRankLostIS,
+    dailyBudget: c.dailyBudget,
   };
+}
+
+// Impression Share и дневной бюджет — не накопительные метрики, а снимок состояния
+// кампании. Берём значение с самой свежей даты в выбранном периоде, а не сумму/среднее.
+function applyLatestSnapshot(acc: CampaignAccumulator, r: JoinedRow) {
+  if (r.date >= acc.latestDate) {
+    acc.latestDate = r.date;
+    acc.searchImpressionShare = r.searchImpressionShare;
+    acc.searchBudgetLostIS = r.searchBudgetLostIS;
+    acc.searchRankLostIS = r.searchRankLostIS;
+    acc.dailyBudget = r.dailyBudget;
+  }
 }
 
 export function summarizeByCampaign(rows: JoinedRow[]): CampaignSummary[] {
@@ -130,6 +160,7 @@ export function summarizeByCampaign(rows: JoinedRow[]): CampaignSummary[] {
       existing.pagesPerSessionWeighted += (r.pagesPerSession ?? 0) * r.clicks;
       existing.avgSessionDurationWeighted += (r.avgSessionDurationSec ?? 0) * r.clicks;
     }
+    applyLatestSnapshot(existing, r);
     map.set(r.campaign, existing);
   }
   return Array.from(map.values())

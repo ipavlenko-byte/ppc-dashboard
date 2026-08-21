@@ -57,6 +57,7 @@ function main() {
 
   syncDevices(spreadsheet, dates);
   syncGeo(spreadsheet, dates);
+  syncLandingPages(spreadsheet, dates);
 }
 
 function syncDevices(spreadsheet, dates) {
@@ -115,6 +116,34 @@ function syncGeo(spreadsheet, dates) {
     }
   }
   writeReport(spreadsheet, "geo_daily", header, rows, dates);
+}
+
+function syncLandingPages(spreadsheet, dates) {
+  const header = ["date", "campaign", "landingPage", "impressions", "clicks", "cost", "conversions"];
+  const rows = [];
+  for (const date of dates) {
+    const report = AdsApp.report(
+      `SELECT campaign.name, campaign.status, landing_page_view.unexpanded_final_url,
+              metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions
+       FROM landing_page_view
+       WHERE segments.date = "${date}"
+       AND campaign.status = "ENABLED"`
+    );
+    const it = report.rows();
+    while (it.hasNext()) {
+      const row = it.next();
+      rows.push([
+        date,
+        row["campaign.name"],
+        row["landing_page_view.unexpanded_final_url"],
+        Number(row["metrics.impressions"]),
+        Number(row["metrics.clicks"]),
+        Number(row["metrics.cost_micros"]) / 1e6,
+        Number(row["metrics.conversions"]),
+      ]);
+    }
+  }
+  writeReport(spreadsheet, "landing_pages_daily", header, rows, dates);
 }
 
 function writeReport(spreadsheet, tabName, header, rows, refreshedDates) {

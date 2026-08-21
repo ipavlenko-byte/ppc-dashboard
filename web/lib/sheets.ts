@@ -10,6 +10,7 @@ import {
   DeviceDailyRow,
   GeoDailyRow,
   Ga4AdGroupDailyRow,
+  LandingPageDailyRow,
 } from "./types";
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -37,7 +38,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Порядок веток здесь определяет порядок значений в valueRanges ответа batchGet.
 const TAB_RANGES = {
-  adsDaily: "ads_daily!A:F",
+  adsDaily: "ads_daily!A:J",
   ga4Daily: "ga4_daily!A:E",
   qualifiedLeads: "qualified_leads!A:C",
   adGroupsDaily: "ad_groups_daily!A:G",
@@ -47,6 +48,7 @@ const TAB_RANGES = {
   deviceDaily: "device_daily!A:G",
   geoDaily: "geo_daily!A:G",
   ga4AdGroupDaily: "ga4_ad_group_daily!A:F",
+  landingPagesDaily: "landing_pages_daily!A:G",
 } as const;
 
 type TabKey = keyof typeof TAB_RANGES;
@@ -59,36 +61,56 @@ type TabKey = keyof typeof TAB_RANGES;
  */
 async function batchReadTabs(): Promise<Record<TabKey, string[][]>> {
   const sheets = getSheetsClient();
-  const keys = Object.keys(TAB_RANGES) as TabKey[];
-  const ranges = keys.map((k) => TAB_RANGES[k]);
-  const maxAttempts = 3;
+  const result = {} as Record<TabKey, string[][]>;
+  let pending = Object.keys(TAB_RANGES) as TabKey[];
+  const maxAttempts = 5; // хватает и на несколько отсутствующих вкладок, и на пару transient-ретраев
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts && pending.length > 0; attempt++) {
+    const ranges = pending.map((k) => TAB_RANGES[k]);
     try {
       const res = await sheets.spreadsheets.values.batchGet({
         spreadsheetId: SHEET_ID,
         ranges,
       });
       const valueRanges = res.data.valueRanges ?? [];
-      const result = {} as Record<TabKey, string[][]>;
-      keys.forEach((key, i) => {
+      pending.forEach((key, i) => {
         const values = valueRanges[i]?.values ?? [];
         result[key] = (values.slice(1) ?? []) as string[][]; // drop header row
       });
-      return result;
+      pending = [];
     } catch (err) {
-      if (attempt === maxAttempts) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(`Sheets batchGet failed after ${maxAttempts} attempts: ${message}`);
-        return Object.fromEntries(keys.map((k) => [k, []])) as unknown as Record<TabKey, string[][]>;
+      const message = err instanceof Error ? err.message : String(err);
+      // batchGet (в отличие от одиночного values.get) роняет ВЕСЬ запрос, если хотя бы
+      // одна вкладка ещё не создана (например, sync-hierarchy.js ещё не запускали).
+      // Вынимаем именно эту вкладку из батча и повторяем с оставшимися — без этого
+      // одна недостающая вкладка обнуляла бы вообще все данные дашборда.
+      const missingMatch = message.match(/Unable to parse range:\s*([^!]+)!/);
+      const missingKey = missingMatch
+        ? pending.find((k) => TAB_RANGES[k].startsWith(`${missingMatch[1]}!`))
+        : undefined;
+
+      if (missingKey) {
+        result[missingKey] = [];
+        pending = pending.filter((k) => k !== missingKey);
+        continue;
       }
-      await sleep(400 * attempt);
+
+      if (attempt === maxAttempts) {
+        console.error(`Sheets batchGet failed after ${attempt} attempts: ${message}`);
+        pending.forEach((k) => {
+          result[k] = [];
+        });
+        pending = [];
+      } else {
+        await sleep(400 * attempt);
+      }
     }
   }
-  return Object.fromEntries(keys.map((k) => [k, []])) as unknown as Record<TabKey, string[][]>;
+  return result;
 }
 
 const num = (v: string | undefined) => Number(v ?? 0) || 0;
+const numOrNull = (v: string | undefined) => (v === undefined || v === "" ? null : Number(v) || 0);
 
 export interface AllSheetData {
   adsDaily: AdsDailyRow[];
@@ -101,6 +123,7 @@ export interface AllSheetData {
   deviceDaily: DeviceDailyRow[];
   geoDaily: GeoDailyRow[];
   ga4AdGroupDaily: Ga4AdGroupDailyRow[];
+  landingPagesDaily: LandingPageDailyRow[];
 }
 
 export async function fetchAllSheetData(): Promise<AllSheetData> {
@@ -116,6 +139,10 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         clicks: num(r[3]),
         cost: num(r[4]),
         conversions: num(r[5]),
+        searchImpressionShare: numOrNull(r[6]),
+        searchBudgetLostIS: numOrNull(r[7]),
+        searchRankLostIS: numOrNull(r[8]),
+        dailyBudget: numOrNull(r[9]),
       })),
 
     ga4Daily: tabs.ga4Daily
@@ -222,6 +249,18 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         bounceRate: num(r[3]),
         pagesPerSession: num(r[4]),
         avgSessionDurationSec: num(r[5]),
+      })),
+
+    landingPagesDaily: tabs.landingPagesDaily
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        landingPage: r[2],
+        impressions: num(r[3]),
+        clicks: num(r[4]),
+        cost: num(r[5]),
+        conversions: num(r[6]),
       })),
   };
 }

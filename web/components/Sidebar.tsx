@@ -6,6 +6,9 @@ const links = [
   { href: "/search-terms", label: "Search Terms" },
   { href: "/devices", label: "Devices" },
   { href: "/geo", label: "Geo" },
+  { href: "/landing-pages", label: "Landing Pages" },
+  { href: "/wasted-spend", label: "Wasted Spend" },
+  { href: "/budget-pacing", label: "Budget Pacing" },
 ];
 
 export function Sidebar() {

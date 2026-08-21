@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AdSummary } from "@/lib/metrics";
 import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
+import { ExportCsvButton } from "./ExportCsvButton";
 
 export function MetricsTable({
   rows,
@@ -44,9 +45,27 @@ export function MetricsTable({
     { key: "cost", label: "Затраты", fmt: (v) => fmtMoney(v as number) },
   ];
 
+  const csvRows = [...rows, ...(rows.length > 0 ? [total] : [])].map((r) => [
+    r.name,
+    ...cols.map((c) => {
+      const v = r[c.key];
+      return v === null ? "" : (v as number);
+    }),
+  ]);
+
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-      <table className="w-full min-w-[800px] text-sm">
+    <div className="flex flex-col gap-2">
+      {rows.length > 0 && (
+        <div className="flex justify-end">
+          <ExportCsvButton
+            filename={nameLabel}
+            headers={[nameLabel, ...cols.map((c) => c.label)]}
+            rows={csvRows}
+          />
+        </div>
+      )}
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[800px] text-sm">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">
             <th className="px-4 py-3">{nameLabel}</th>
@@ -94,7 +113,8 @@ export function MetricsTable({
             </tr>
           )}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
