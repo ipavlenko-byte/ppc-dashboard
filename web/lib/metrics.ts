@@ -1,4 +1,4 @@
-import { AdsDailyRow, Ga4DailyRow, QualifiedLeadsRow, JoinedRow } from "./types";
+import { AdsDailyRow, Ga4DailyRow, QualifiedLeadsRow, JoinedRow, AdMetricsBase } from "./types";
 
 function normKey(date: string, campaign: string) {
   return `${date}__${campaign.trim().toLowerCase()}`;
@@ -123,6 +123,84 @@ export function grandTotal(rows: JoinedRow[]): CampaignSummary {
   total.cr = safeDiv(total.conversions, total.clicks);
   total.cpl = safeDiv(total.cost, total.conversions);
   total.cpql = safeDiv(total.cost, total.qualifiedLeads);
+  return total;
+}
+
+export function filterByDays<T extends { date: string }>(rows: T[], days: number): T[] {
+  if (rows.length === 0) return rows;
+  const maxDate = rows.reduce((max, r) => (r.date > max ? r.date : max), rows[0].date);
+  const cutoff = new Date(maxDate);
+  cutoff.setDate(cutoff.getDate() - (days - 1));
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  return rows.filter((r) => r.date >= cutoffStr);
+}
+
+export interface AdSummary {
+  name: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  conversions: number;
+  ctr: number;
+  cpc: number;
+  cr: number;
+  cpl: number;
+}
+
+export function summarizeGeneric<T extends AdMetricsBase>(
+  rows: T[],
+  keyFn: (r: T) => string
+): AdSummary[] {
+  const map = new Map<string, AdSummary>();
+  for (const r of rows) {
+    const key = keyFn(r);
+    const existing = map.get(key) ?? {
+      name: key,
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      ctr: 0,
+      cpc: 0,
+      cr: 0,
+      cpl: 0,
+    };
+    existing.impressions += r.impressions;
+    existing.clicks += r.clicks;
+    existing.cost += r.cost;
+    existing.conversions += r.conversions;
+    map.set(key, existing);
+  }
+  return Array.from(map.values())
+    .map((c) => ({
+      ...c,
+      ctr: safeDiv(c.clicks, c.impressions),
+      cpc: safeDiv(c.cost, c.clicks),
+      cr: safeDiv(c.conversions, c.clicks),
+      cpl: safeDiv(c.cost, c.conversions),
+    }))
+    .sort((a, b) => b.cost - a.cost);
+}
+
+export function grandTotalGeneric(summaries: AdSummary[]): AdSummary {
+  const total = summaries.reduce(
+    (acc, c) => ({
+      name: "SUMMARY",
+      impressions: acc.impressions + c.impressions,
+      clicks: acc.clicks + c.clicks,
+      cost: acc.cost + c.cost,
+      conversions: acc.conversions + c.conversions,
+      ctr: 0,
+      cpc: 0,
+      cr: 0,
+      cpl: 0,
+    }),
+    { name: "SUMMARY", impressions: 0, clicks: 0, cost: 0, conversions: 0, ctr: 0, cpc: 0, cr: 0, cpl: 0 }
+  );
+  total.ctr = safeDiv(total.clicks, total.impressions);
+  total.cpc = safeDiv(total.cost, total.clicks);
+  total.cr = safeDiv(total.conversions, total.clicks);
+  total.cpl = safeDiv(total.cost, total.conversions);
   return total;
 }
 

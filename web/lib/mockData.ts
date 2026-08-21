@@ -1,4 +1,12 @@
-import { AdsDailyRow, Ga4DailyRow, QualifiedLeadsRow } from "./types";
+import {
+  AdsDailyRow,
+  Ga4DailyRow,
+  QualifiedLeadsRow,
+  AdGroupDailyRow,
+  KeywordDailyRow,
+  AdCreativeDailyRow,
+  SearchTermDailyRow,
+} from "./types";
 
 const CAMPAIGNS = [
   { name: "Sellvia_Pmax_US_CAN_UK_AUS_SG #2", baseCost: 3200, baseCtr: 0.059, baseCr: 0.266 },
@@ -58,4 +66,151 @@ export function generateMockQualifiedLeads(ads: AdsDailyRow[]): QualifiedLeadsRo
     campaign: r.campaign,
     qualifiedLeads: Math.round(r.conversions * (0.25 + rand() * 0.45)),
   }));
+}
+
+const AD_GROUPS = ["Broad Match", "Exact Match", "Brand Terms"];
+const KEYWORDS_BY_GROUP: Record<string, string[]> = {
+  "Broad Match": ["game localization services", "video game translation", "outsource art games"],
+  "Exact Match": ["[game localization]", "[game art outsourcing]"],
+  "Brand Terms": ["allcorrect games", "allcorrect localization"],
+};
+const MATCH_TYPE_BY_GROUP: Record<string, string> = {
+  "Broad Match": "BROAD",
+  "Exact Match": "EXACT",
+  "Brand Terms": "PHRASE",
+};
+const SEARCH_TERMS_POOL = [
+  "game localization company",
+  "best game translation service",
+  "art outsourcing studio",
+  "localize mobile game",
+  "allcorrect games reviews",
+  "game QA testing service",
+  "indie game translation",
+  "video game art outsourcing",
+];
+
+function splitMetric(total: number, parts: number, rand: () => number) {
+  const weights = Array.from({ length: parts }, () => 0.4 + rand() * 0.6);
+  const sum = weights.reduce((a, b) => a + b, 0);
+  return weights.map((w) => Math.round((w / sum) * total));
+}
+
+export function generateMockAdGroups(ads: AdsDailyRow[]): AdGroupDailyRow[] {
+  const rand = seedRandom(11);
+  const rows: AdGroupDailyRow[] = [];
+  for (const r of ads) {
+    const [imp1, imp2, imp3] = splitMetric(r.impressions, 3, rand);
+    const [clk1, clk2, clk3] = splitMetric(r.clicks, 3, rand);
+    const [cost1, cost2, cost3] = splitMetric(r.cost, 3, rand);
+    const [conv1, conv2, conv3] = splitMetric(r.conversions, 3, rand);
+    const values = [
+      [imp1, clk1, cost1, conv1],
+      [imp2, clk2, cost2, conv2],
+      [imp3, clk3, cost3, conv3],
+    ];
+    AD_GROUPS.forEach((adGroup, i) => {
+      rows.push({
+        date: r.date,
+        campaign: r.campaign,
+        adGroup,
+        impressions: values[i][0],
+        clicks: values[i][1],
+        cost: values[i][2],
+        conversions: values[i][3],
+      });
+    });
+  }
+  return rows;
+}
+
+export function generateMockKeywords(adGroups: AdGroupDailyRow[]): KeywordDailyRow[] {
+  const rand = seedRandom(13);
+  const rows: KeywordDailyRow[] = [];
+  for (const r of adGroups) {
+    const keywords = KEYWORDS_BY_GROUP[r.adGroup] ?? ["generic keyword"];
+    const impParts = splitMetric(r.impressions, keywords.length, rand);
+    const clkParts = splitMetric(r.clicks, keywords.length, rand);
+    const costParts = splitMetric(r.cost, keywords.length, rand);
+    const convParts = splitMetric(r.conversions, keywords.length, rand);
+    keywords.forEach((keyword, i) => {
+      rows.push({
+        date: r.date,
+        campaign: r.campaign,
+        adGroup: r.adGroup,
+        keyword,
+        matchType: MATCH_TYPE_BY_GROUP[r.adGroup] ?? "BROAD",
+        impressions: impParts[i],
+        clicks: clkParts[i],
+        cost: costParts[i],
+        conversions: convParts[i],
+      });
+    });
+  }
+  return rows;
+}
+
+export function generateMockAdCreatives(adGroups: AdGroupDailyRow[]): AdCreativeDailyRow[] {
+  const rand = seedRandom(17);
+  const rows: AdCreativeDailyRow[] = [];
+  for (const r of adGroups) {
+    const [imp1, imp2] = splitMetric(r.impressions, 2, rand);
+    const [clk1, clk2] = splitMetric(r.clicks, 2, rand);
+    const [cost1, cost2] = splitMetric(r.cost, 2, rand);
+    const [conv1, conv2] = splitMetric(r.conversions, 2, rand);
+    rows.push(
+      {
+        date: r.date,
+        campaign: r.campaign,
+        adGroup: r.adGroup,
+        adId: `${r.adGroup.slice(0, 3).toUpperCase()}-RSA-1`,
+        adType: "RESPONSIVE_SEARCH_AD",
+        impressions: imp1,
+        clicks: clk1,
+        cost: cost1,
+        conversions: conv1,
+      },
+      {
+        date: r.date,
+        campaign: r.campaign,
+        adGroup: r.adGroup,
+        adId: `${r.adGroup.slice(0, 3).toUpperCase()}-RSA-2`,
+        adType: "RESPONSIVE_SEARCH_AD",
+        impressions: imp2,
+        clicks: clk2,
+        cost: cost2,
+        conversions: conv2,
+      }
+    );
+  }
+  return rows;
+}
+
+export function generateMockSearchTerms(adGroups: AdGroupDailyRow[]): SearchTermDailyRow[] {
+  const rand = seedRandom(19);
+  const rows: SearchTermDailyRow[] = [];
+  for (const r of adGroups) {
+    const termCount = 2 + Math.floor(rand() * 3);
+    const terms = Array.from(
+      { length: termCount },
+      () => SEARCH_TERMS_POOL[Math.floor(rand() * SEARCH_TERMS_POOL.length)]
+    );
+    const impParts = splitMetric(r.impressions, terms.length, rand);
+    const clkParts = splitMetric(r.clicks, terms.length, rand);
+    const costParts = splitMetric(r.cost, terms.length, rand);
+    const convParts = splitMetric(r.conversions, terms.length, rand);
+    terms.forEach((searchTerm, i) => {
+      rows.push({
+        date: r.date,
+        campaign: r.campaign,
+        adGroup: r.adGroup,
+        searchTerm,
+        impressions: impParts[i],
+        clicks: clkParts[i],
+        cost: costParts[i],
+        conversions: convParts[i],
+      });
+    });
+  }
+  return rows;
 }

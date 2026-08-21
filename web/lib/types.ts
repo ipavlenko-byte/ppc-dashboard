@@ -21,6 +21,36 @@ export interface QualifiedLeadsRow {
   qualifiedLeads: number;
 }
 
+export interface AdMetricsBase {
+  date: string;
+  campaign: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  conversions: number;
+}
+
+export interface AdGroupDailyRow extends AdMetricsBase {
+  adGroup: string;
+}
+
+export interface KeywordDailyRow extends AdMetricsBase {
+  adGroup: string;
+  keyword: string;
+  matchType: string;
+}
+
+export interface AdCreativeDailyRow extends AdMetricsBase {
+  adGroup: string;
+  adId: string;
+  adType: string;
+}
+
+export interface SearchTermDailyRow extends AdMetricsBase {
+  adGroup: string;
+  searchTerm: string;
+}
+
 export interface JoinedRow {
   date: string;
   campaign: string;
