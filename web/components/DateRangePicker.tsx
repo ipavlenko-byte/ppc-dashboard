@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { PRESET_DAYS, ResolvedDateFilter } from "@/lib/dateFilter";
 
@@ -14,14 +13,15 @@ export function DateRangePicker({
   extraParams?: Record<string, string>;
   current: ResolvedDateFilter;
 }) {
-  const router = useRouter();
   const [from, setFrom] = useState(current.from ?? "");
   const [to, setTo] = useState(current.to ?? "");
 
   const goto = (params: Record<string, string>) => {
     const query = new URLSearchParams({ ...extraParams, ...params });
-    router.push(`${basePath}?${query.toString()}`);
-    router.refresh();
+    // Полная перезагрузка страницы вместо клиентской навигации — обходит
+    // кэш роутов Next.js, который в проде иногда отдаёт устаревший RSC-payload
+    // при переходах, меняющих только query-параметры.
+    window.location.href = `${basePath}?${query.toString()}`;
   };
 
   const applyRange = () => {

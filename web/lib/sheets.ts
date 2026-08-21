@@ -19,28 +19,56 @@ export function sheetsConfigured() {
   return Boolean(SHEET_ID && SERVICE_ACCOUNT_JSON);
 }
 
-async function getSheetsClient() {
-  const credentials = JSON.parse(SERVICE_ACCOUNT_JSON as string);
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
-  return google.sheets({ version: "v4", auth });
+let cachedClient: ReturnType<typeof google.sheets> | null = null;
+
+function getSheetsClient() {
+  // Один клиент/OAuth-сессия на весь процесс, а не по одному на каждую вкладку —
+  // иначе каждый параллельный readTab() тянул свою собственную авторизацию,
+  // и Google иногда отвечал transient-ошибкой на такой всплеск запросов.
+  if (!cachedClient) {
+    const credentials = JSON.parse(SERVICE_ACCOUNT_JSON as string);
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+    });
+    cachedClient = google.sheets({ version: "v4", auth });
+  }
+  return cachedClient;
 }
 
+function isTabMissingError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /Unable to parse range|Requested entity was not found/i.test(message);
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function readTab(range: string): Promise<string[][]> {
-  const sheets = await getSheetsClient();
-  try {
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range,
-    });
-    const values = res.data.values ?? [];
-    return values.slice(1) as string[][]; // drop header row
-  } catch {
-    // Вкладка ещё не создана (например, sync-hierarchy.js ещё не запускали) — не роняем дашборд.
-    return [];
+  const sheets = getSheetsClient();
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range,
+      });
+      const values = res.data.values ?? [];
+      return values.slice(1) as string[][]; // drop header row
+    } catch (err) {
+      if (isTabMissingError(err)) {
+        // Вкладка ещё не создана (например, sync-hierarchy.js ещё не запускали) — это ожидаемо.
+        return [];
+      }
+      if (attempt === maxAttempts) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`Sheets read failed for range "${range}" after ${maxAttempts} attempts: ${message}`);
+        return [];
+      }
+      await sleep(300 * attempt);
+    }
   }
+  return [];
 }
 
 const num = (v: string | undefined) => Number(v ?? 0) || 0;

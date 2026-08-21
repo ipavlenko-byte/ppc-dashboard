@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { ResolvedDateFilter } from "@/lib/dateFilter";
 
 export function CampaignFilter({
@@ -14,8 +13,6 @@ export function CampaignFilter({
   filter: ResolvedDateFilter;
   basePath: string;
 }) {
-  const router = useRouter();
-
   return (
     <select
       value={current}
@@ -25,8 +22,10 @@ export function CampaignFilter({
             ? { from: filter.from, to: filter.to }
             : { days: String(filter.days) };
         if (e.target.value) params.campaign = e.target.value;
-        router.push(`${basePath}?${new URLSearchParams(params).toString()}`);
-        router.refresh();
+        // Полная перезагрузка страницы вместо клиентской навигации — обходит
+        // кэш роутов Next.js, который в проде иногда отдаёт устаревший RSC-payload
+        // при переходах, меняющих только query-параметры.
+        window.location.href = `${basePath}?${new URLSearchParams(params).toString()}`;
       }}
       className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
     >
