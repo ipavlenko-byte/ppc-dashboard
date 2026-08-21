@@ -1,15 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ResolvedDateFilter } from "@/lib/dateFilter";
 
 export function CampaignFilter({
   campaigns,
   current,
-  days,
+  filter,
 }: {
   campaigns: string[];
   current: string;
-  days: number;
+  filter: ResolvedDateFilter;
 }) {
   const router = useRouter();
 
@@ -17,9 +18,12 @@ export function CampaignFilter({
     <select
       value={current}
       onChange={(e) => {
-        const params = new URLSearchParams({ days: String(days) });
-        if (e.target.value) params.set("campaign", e.target.value);
-        router.push(`/search-terms?${params.toString()}`);
+        const params: Record<string, string> =
+          filter.mode === "range" && filter.from && filter.to
+            ? { from: filter.from, to: filter.to }
+            : { days: String(filter.days) };
+        if (e.target.value) params.campaign = e.target.value;
+        router.push(`/search-terms?${new URLSearchParams(params).toString()}`);
       }}
       className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
     >

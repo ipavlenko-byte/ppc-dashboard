@@ -1,8 +1,9 @@
 import { getDashboardData } from "@/lib/dataSource";
-import { grandTotal, dailyTrend, filterByDays } from "@/lib/metrics";
+import { grandTotal, dailyTrend, applyDateFilter } from "@/lib/metrics";
+import { resolveDateFilter } from "@/lib/dateFilter";
 import { KpiTile } from "@/components/KpiTile";
 import { TrendChart } from "@/components/TrendChart";
-import { DateRangePicker, parseDays } from "@/components/DateRangePicker";
+import { DateRangePicker } from "@/components/DateRangePicker";
 import { fmtInt, fmtMoney, fmtPct } from "@/lib/format";
 
 export const revalidate = 300; // пересчёт кэша раз в 5 минут
@@ -10,27 +11,27 @@ export const revalidate = 300; // пересчёт кэша раз в 5 мину
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string }>;
 }) {
-  const { days: daysParam } = await searchParams;
-  const days = parseDays(daysParam);
+  const sp = await searchParams;
+  const filter = resolveDateFilter(sp);
 
   const { rows: allRows, source } = await getDashboardData();
-  const rows = filterByDays(allRows, days);
+  const rows = applyDateFilter(allRows, filter);
   const total = grandTotal(rows);
   const trend = dailyTrend(rows);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Overview — последние {days} дней</h1>
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Overview — {filter.label}</h1>
+        <div className="flex flex-wrap items-center gap-3">
           {source === "mock" && (
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
               Демо-данные (Sheet не подключён)
             </span>
           )}
-          <DateRangePicker basePath="/" currentDays={days} />
+          <DateRangePicker basePath="/" current={filter} />
         </div>
       </div>
 

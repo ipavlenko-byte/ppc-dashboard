@@ -1,38 +1,84 @@
-import Link from "next/link";
-import clsx from "clsx";
+"use client";
 
-const PRESETS = [7, 14, 30] as const;
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import clsx from "clsx";
+import { PRESET_DAYS, ResolvedDateFilter } from "@/lib/dateFilter";
 
 export function DateRangePicker({
   basePath,
-  currentDays,
   extraParams,
+  current,
 }: {
   basePath: string;
-  currentDays: number;
   extraParams?: Record<string, string>;
+  current: ResolvedDateFilter;
 }) {
+  const router = useRouter();
+  const [from, setFrom] = useState(current.from ?? "");
+  const [to, setTo] = useState(current.to ?? "");
+
+  const goto = (params: Record<string, string>) => {
+    const query = new URLSearchParams({ ...extraParams, ...params });
+    router.push(`${basePath}?${query.toString()}`);
+  };
+
+  const applyRange = () => {
+    if (from && to) goto({ from, to });
+  };
+
   return (
-    <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
-      {PRESETS.map((days) => (
-        <Link
-          key={days}
-          href={`${basePath}?${new URLSearchParams({ ...extraParams, days: String(days) }).toString()}`}
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+        {PRESET_DAYS.map((days) => (
+          <button
+            key={days}
+            type="button"
+            onClick={() => {
+              setFrom("");
+              setTo("");
+              goto({ days: String(days) });
+            }}
+            className={clsx(
+              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              current.mode === "days" && current.days === days
+                ? "bg-blue-600 text-white"
+                : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            {days === 1 ? "1 день" : `${days} дней`}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          className="rounded-md px-2 py-1 text-sm text-slate-700 outline-none"
+        />
+        <span className="text-slate-300">–</span>
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          className="rounded-md px-2 py-1 text-sm text-slate-700 outline-none"
+        />
+        <button
+          type="button"
+          onClick={applyRange}
+          disabled={!from || !to}
           className={clsx(
             "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            days === currentDays
+            current.mode === "range"
               ? "bg-blue-600 text-white"
-              : "text-slate-600 hover:bg-slate-100"
+              : "text-slate-600 hover:bg-slate-100 disabled:text-slate-300"
           )}
         >
-          {days} дней
-        </Link>
-      ))}
+          Применить
+        </button>
+      </div>
     </div>
   );
-}
-
-export function parseDays(value: string | string[] | undefined): number {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return PRESETS.includes(n as (typeof PRESETS)[number]) ? n : 30;
 }

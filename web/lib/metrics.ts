@@ -1,4 +1,5 @@
 import { AdsDailyRow, Ga4DailyRow, QualifiedLeadsRow, JoinedRow, AdMetricsBase } from "./types";
+import { ResolvedDateFilter } from "./dateFilter";
 
 function normKey(date: string, campaign: string) {
   return `${date}__${campaign.trim().toLowerCase()}`;
@@ -133,6 +134,16 @@ export function filterByDays<T extends { date: string }>(rows: T[], days: number
   cutoff.setDate(cutoff.getDate() - (days - 1));
   const cutoffStr = cutoff.toISOString().slice(0, 10);
   return rows.filter((r) => r.date >= cutoffStr);
+}
+
+export function filterByRange<T extends { date: string }>(rows: T[], from: string, to: string): T[] {
+  return rows.filter((r) => r.date >= from && r.date <= to);
+}
+
+export function applyDateFilter<T extends { date: string }>(rows: T[], filter: ResolvedDateFilter): T[] {
+  return filter.mode === "range" && filter.from && filter.to
+    ? filterByRange(rows, filter.from, filter.to)
+    : filterByDays(rows, filter.days);
 }
 
 export interface AdSummary {

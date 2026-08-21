@@ -1,7 +1,8 @@
 import { getDashboardData } from "@/lib/dataSource";
-import { summarizeGeneric, grandTotalGeneric, filterByDays } from "@/lib/metrics";
+import { summarizeGeneric, grandTotalGeneric, applyDateFilter } from "@/lib/metrics";
+import { resolveDateFilter } from "@/lib/dateFilter";
 import { MetricsTable } from "@/components/MetricsTable";
-import { DateRangePicker, parseDays } from "@/components/DateRangePicker";
+import { DateRangePicker } from "@/components/DateRangePicker";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export const revalidate = 300;
@@ -11,20 +12,20 @@ export default async function AdGroupDetailPage({
   searchParams,
 }: {
   params: Promise<{ campaign: string; adgroup: string }>;
-  searchParams: Promise<{ days?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string }>;
 }) {
   const { campaign: campaignParam, adgroup: adGroupParam } = await params;
   const campaign = decodeURIComponent(campaignParam);
   const adGroup = decodeURIComponent(adGroupParam);
-  const { days: daysParam } = await searchParams;
-  const days = parseDays(daysParam);
+  const sp = await searchParams;
+  const filter = resolveDateFilter(sp);
   const basePath = `/campaigns/${encodeURIComponent(campaign)}/${encodeURIComponent(adGroup)}`;
 
   const { keywords, adCreatives } = await getDashboardData();
 
-  const keywordRows = filterByDays(
+  const keywordRows = applyDateFilter(
     keywords.filter((r) => r.campaign === campaign && r.adGroup === adGroup),
-    days
+    filter
   );
   const keywordSummaries = summarizeGeneric(
     keywordRows,
@@ -32,9 +33,9 @@ export default async function AdGroupDetailPage({
   );
   const keywordTotal = grandTotalGeneric(keywordSummaries);
 
-  const adRows = filterByDays(
+  const adRows = applyDateFilter(
     adCreatives.filter((r) => r.campaign === campaign && r.adGroup === adGroup),
-    days
+    filter
   );
   const adSummaries = summarizeGeneric(adRows, (r) => `${r.adId} · ${r.adType}`);
   const adTotal = grandTotalGeneric(adSummaries);
@@ -48,9 +49,9 @@ export default async function AdGroupDetailPage({
           { label: adGroup },
         ]}
       />
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{adGroup} — последние {days} дней</h1>
-        <DateRangePicker basePath={basePath} currentDays={days} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">{adGroup} — {filter.label}</h1>
+        <DateRangePicker basePath={basePath} current={filter} />
       </div>
 
       <div className="flex flex-col gap-3">
