@@ -27,7 +27,7 @@ export function CampaignFilter({
         // при переходах, меняющих только query-параметры.
         window.location.href = `${basePath}?${new URLSearchParams(params).toString()}`;
       }}
-      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+      className="min-w-[220px] rounded-lg border-2 border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none transition-colors hover:border-slate-400 focus:border-blue-500"
     >
       <option value="">Все кампании</option>
       {campaigns.map((c) => (

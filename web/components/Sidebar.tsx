@@ -11,7 +11,15 @@ const links = [
 export function Sidebar() {
   return (
     <aside className="w-52 shrink-0 border-r border-slate-200 bg-white px-4 py-5">
-      <div className="mb-6 text-lg font-bold text-blue-600">PPC Dashboard</div>
+      <div className="mb-6 flex items-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://allcorrectgames.com/wp-content/uploads/2023/08/logo_blue.png"
+          alt="Allcorrect"
+          className="h-7 w-auto"
+        />
+        <span className="text-sm font-semibold text-slate-500">PPC Dashboard</span>
+      </div>
       <nav className="flex flex-col gap-1">
         {links.map((l) => (
           <Link
