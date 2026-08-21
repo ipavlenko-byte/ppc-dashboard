@@ -26,6 +26,7 @@ export function CampaignFilter({
             : { days: String(filter.days) };
         if (e.target.value) params.campaign = e.target.value;
         router.push(`${basePath}?${new URLSearchParams(params).toString()}`);
+        router.refresh();
       }}
       className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
     >

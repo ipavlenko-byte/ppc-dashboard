@@ -21,6 +21,7 @@ export function DateRangePicker({
   const goto = (params: Record<string, string>) => {
     const query = new URLSearchParams({ ...extraParams, ...params });
     router.push(`${basePath}?${query.toString()}`);
+    router.refresh();
   };
 
   const applyRange = () => {
