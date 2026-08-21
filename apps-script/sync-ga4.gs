@@ -122,6 +122,17 @@ function ensureHeader(sheet, header) {
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(header);
   }
+  // Принудительно текстовый формат колонки A — иначе Sheets конвертирует
+  // "yyyy-MM-dd" в Date, сравнение строк в removeExistingDates перестаёт находить
+  // совпадения, и данные задваиваются при каждом запуске.
+  sheet.getRange(1, 1, Math.max(sheet.getMaxRows(), 2), 1).setNumberFormat("@");
+}
+
+function normalizeDateValue(v) {
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  }
+  return v;
 }
 
 function removeExistingDates(sheet, dateSet) {
@@ -129,7 +140,7 @@ function removeExistingDates(sheet, dateSet) {
   if (lastRow < 2) return;
   const values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   for (let i = values.length - 1; i >= 0; i--) {
-    if (dateSet.has(values[i][0])) {
+    if (dateSet.has(normalizeDateValue(values[i][0]))) {
       sheet.deleteRow(i + 2);
     }
   }

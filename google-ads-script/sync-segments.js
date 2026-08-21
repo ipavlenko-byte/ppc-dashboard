@@ -151,6 +151,10 @@ function writeReport(spreadsheet, tabName, header, rows, refreshedDates) {
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(header);
   }
+  // Принудительно текстовый формат колонки A — иначе Sheets конвертирует
+  // "yyyy-MM-dd" в Date, сравнение строк в removeRowsByDate/trimOldRows перестаёт
+  // находить совпадения, и данные задваиваются при каждом запуске.
+  sheet.getRange(1, 1, Math.max(sheet.getMaxRows(), 2), 1).setNumberFormat("@");
 
   removeRowsByDate(sheet, new Set(refreshedDates));
   trimOldRows(sheet, MAX_HISTORY_DAYS);
@@ -171,12 +175,19 @@ function getDateRange(days) {
   return dates;
 }
 
+function normalizeDateValue(v) {
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, AdsApp.currentAccount().getTimeZone(), "yyyy-MM-dd");
+  }
+  return v;
+}
+
 function removeRowsByDate(sheet, dateSet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
   const values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   for (let i = values.length - 1; i >= 0; i--) {
-    if (dateSet.has(values[i][0])) {
+    if (dateSet.has(normalizeDateValue(values[i][0]))) {
       sheet.deleteRow(i + 2);
     }
   }
@@ -191,7 +202,7 @@ function trimOldRows(sheet, maxHistoryDays) {
 
   const values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   for (let i = values.length - 1; i >= 0; i--) {
-    if (values[i][0] < cutoffStr) {
+    if (normalizeDateValue(values[i][0]) < cutoffStr) {
       sheet.deleteRow(i + 2);
     }
   }

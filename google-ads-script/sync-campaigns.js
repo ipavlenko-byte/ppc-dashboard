@@ -92,6 +92,20 @@ function ensureHeader(sheet) {
   // Перезаписываем заголовок каждый раз — идемпотентно и само "чинит" вкладки,
   // созданные до добавления новых колонок (Impression Share, бюджет).
   sheet.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);
+  // Принудительно делаем колонку A текстовой — иначе Google Sheets сам
+  // конвертирует "yyyy-MM-dd" в объект Date, и сравнение строк в
+  // removeExistingDates перестаёт находить совпадения, из-за чего старые
+  // строки не удаляются и данные задваиваются/затраиваются при каждом запуске.
+  sheet.getRange(1, 1, Math.max(sheet.getMaxRows(), 2), 1).setNumberFormat("@");
+}
+
+// Если ячейка всё же оказалась датой (например, старые строки из вкладки
+// до этого фикса), приводим её к тому же строковому виду "yyyy-MM-dd".
+function normalizeDateValue(v) {
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, AdsApp.currentAccount().getTimeZone(), "yyyy-MM-dd");
+  }
+  return v;
 }
 
 function getDateRange(days) {
@@ -111,7 +125,7 @@ function removeExistingDates(sheet, dates) {
   const dateSet = new Set(dates);
   // Идём снизу вверх, чтобы удаление строк не сбивало индексы
   for (let i = values.length - 1; i >= 0; i--) {
-    if (dateSet.has(values[i][0])) {
+    if (dateSet.has(normalizeDateValue(values[i][0]))) {
       sheet.deleteRow(i + 2);
     }
   }
