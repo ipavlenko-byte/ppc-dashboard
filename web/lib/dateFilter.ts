@@ -1,4 +1,4 @@
-export const PRESET_DAYS = [1, 7, 14, 30] as const;
+export const PRESET_DAYS = [1, 7, 14, 30, 90, 180] as const;
 
 export interface ResolvedDateFilter {
   mode: "days" | "range";
