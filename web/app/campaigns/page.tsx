@@ -1,9 +1,17 @@
+import {
+  summarizeByCampaign,
+  grandTotal,
+  applyDateFilter,
+  getPeriodBounds,
+  getPreviousPeriodBounds,
+  filterByRange,
+} from "@/lib/metrics";
 import { getDashboardData } from "@/lib/dataSource";
-import { summarizeByCampaign, grandTotal, applyDateFilter } from "@/lib/metrics";
 import { resolveDateFilter } from "@/lib/dateFilter";
 import { CampaignsTable } from "@/components/CampaignsTable";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { flagCampaign } from "@/lib/anomalies";
+import { computeCampaignTrend } from "@/lib/trends";
 
 export const revalidate = 300;
 
@@ -29,6 +37,16 @@ export default async function CampaignsPage({
       ? campaignsWithConversions.reduce((sum, s) => sum + s.cpl, 0) / campaignsWithConversions.length
       : 0;
 
+  const currentBounds = getPeriodBounds(allRows, filter);
+  const prevSummaryByCampaign = new Map<string, ReturnType<typeof summarizeByCampaign>[number]>();
+  if (currentBounds) {
+    const prevBounds = getPreviousPeriodBounds(currentBounds);
+    const prevRows = filterByRange(allRows, prevBounds.from, prevBounds.to);
+    for (const s of summarizeByCampaign(prevRows)) {
+      prevSummaryByCampaign.set(s.campaign, s);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -40,6 +58,7 @@ export default async function CampaignsPage({
         total={total}
         linkFor={(campaign) => `/campaigns/${encodeURIComponent(campaign)}?${linkQuery}`}
         flagFor={(c) => flagCampaign(c, accountAvgCpl)}
+        trendFor={(c) => computeCampaignTrend(c, prevSummaryByCampaign.get(c.campaign))}
       />
     </div>
   );

@@ -168,6 +168,41 @@ export function filterByRange<T extends { date: string }>(rows: T[], from: strin
   return rows.filter((r) => r.date >= from && r.date <= to);
 }
 
+export interface PeriodBounds {
+  from: string;
+  to: string;
+}
+
+export function getPeriodBounds<T extends { date: string }>(
+  rows: T[],
+  filter: ResolvedDateFilter
+): PeriodBounds | null {
+  if (filter.mode === "range" && filter.from && filter.to) {
+    return { from: filter.from, to: filter.to };
+  }
+  if (rows.length === 0) return null;
+  const maxDate = rows.reduce((max, r) => (r.date > max ? r.date : max), rows[0].date);
+  const cutoff = new Date(maxDate);
+  cutoff.setDate(cutoff.getDate() - (filter.days - 1));
+  return { from: cutoff.toISOString().slice(0, 10), to: maxDate };
+}
+
+export function getPreviousPeriodBounds(current: PeriodBounds): PeriodBounds {
+  const fromD = new Date(current.from);
+  const toD = new Date(current.to);
+  const lengthDays = Math.round((toD.getTime() - fromD.getTime()) / 86_400_000) + 1;
+
+  const prevTo = new Date(fromD);
+  prevTo.setDate(prevTo.getDate() - 1);
+  const prevFrom = new Date(prevTo);
+  prevFrom.setDate(prevFrom.getDate() - (lengthDays - 1));
+
+  return {
+    from: prevFrom.toISOString().slice(0, 10),
+    to: prevTo.toISOString().slice(0, 10),
+  };
+}
+
 export function applyDateFilter<T extends { date: string }>(rows: T[], filter: ResolvedDateFilter): T[] {
   return filter.mode === "range" && filter.from && filter.to
     ? filterByRange(rows, filter.from, filter.to)

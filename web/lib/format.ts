@@ -8,8 +8,9 @@ export const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`;
 export const fmtDecimal = (v: number) => v.toFixed(2);
 
 export const fmtDuration = (seconds: number) => {
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
+  const totalSeconds = Math.round(seconds);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
 };
 

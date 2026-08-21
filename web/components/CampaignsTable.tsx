@@ -2,29 +2,49 @@ import Link from "next/link";
 import clsx from "clsx";
 import { CampaignSummary } from "@/lib/metrics";
 import { AnomalyFlag } from "@/lib/anomalies";
+import { CampaignTrend, TrendLevel } from "@/lib/trends";
 import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
+
+function TrendArrow({ level }: { level: TrendLevel }) {
+  if (level === "neutral") return null;
+  return (
+    <span
+      className={clsx("ml-1 text-xs", level === "good" ? "text-emerald-600" : "text-red-600")}
+      title={level === "good" ? "Лучше, чем в прошлом периоде" : "Хуже, чем в прошлом периоде"}
+    >
+      {level === "good" ? "▲" : "▼"}
+    </span>
+  );
+}
 
 export function CampaignsTable({
   rows,
   total,
   linkFor,
   flagFor,
+  trendFor,
 }: {
   rows: CampaignSummary[];
   total: CampaignSummary;
   linkFor?: (campaign: string) => string;
   flagFor?: (campaign: CampaignSummary) => AnomalyFlag;
+  trendFor?: (campaign: CampaignSummary) => CampaignTrend | null;
 }) {
-  const cols: { key: keyof CampaignSummary; label: string; fmt: (v: number | null) => string }[] = [
+  const cols: {
+    key: keyof CampaignSummary;
+    label: string;
+    fmt: (v: number | null) => string;
+    trendKey?: keyof CampaignTrend;
+  }[] = [
     { key: "impressions", label: "Показы", fmt: (v) => fmtInt(v as number) },
     { key: "clicks", label: "Клики", fmt: (v) => fmtInt(v as number) },
-    { key: "ctr", label: "CTR", fmt: (v) => fmtPct(v as number) },
+    { key: "ctr", label: "CTR", fmt: (v) => fmtPct(v as number), trendKey: "ctr" },
     { key: "bounceRate", label: "Процент отказов", fmt: (v) => fmtOrDash(v, fmtPct) },
     { key: "pagesPerSession", label: "Глубина просмотра", fmt: (v) => fmtOrDash(v, fmtDecimal) },
     { key: "avgSessionDurationSec", label: "Время на сайте", fmt: (v) => fmtOrDash(v, fmtDuration) },
     { key: "conversions", label: "Заявки", fmt: (v) => fmtInt(v as number) },
     { key: "qualifiedLeads", label: "Кач. заявки", fmt: (v) => fmtInt(v as number) },
-    { key: "cpc", label: "CPC", fmt: (v) => fmtMoney(v as number) },
+    { key: "cpc", label: "CPC", fmt: (v) => fmtMoney(v as number), trendKey: "cpc" },
     { key: "cpl", label: "CPL", fmt: (v) => fmtMoney(v as number) },
     { key: "cpql", label: "CPQL", fmt: (v) => fmtMoney(v as number) },
     { key: "cost", label: "Затраты", fmt: (v) => fmtMoney(v as number) },
@@ -46,6 +66,7 @@ export function CampaignsTable({
         <tbody>
           {rows.map((r) => {
             const flag = flagFor?.(r);
+            const trend = trendFor?.(r);
             return (
               <tr
                 key={r.campaign}
@@ -72,6 +93,7 @@ export function CampaignsTable({
                 {cols.map((c) => (
                   <td key={c.key} className="px-4 py-2.5 text-right text-slate-700">
                     {c.fmt(r[c.key] as number | null)}
+                    {c.trendKey && trend && <TrendArrow level={trend[c.trendKey]} />}
                   </td>
                 ))}
               </tr>
