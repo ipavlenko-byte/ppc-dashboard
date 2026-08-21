@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CampaignSummary } from "@/lib/metrics";
-import { fmtInt, fmtMoney, fmtPct } from "@/lib/format";
+import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
 
 export function CampaignsTable({
   rows,
@@ -11,21 +11,24 @@ export function CampaignsTable({
   total: CampaignSummary;
   linkFor?: (campaign: string) => string;
 }) {
-  const cols: { key: keyof CampaignSummary; label: string; fmt: (v: number) => string }[] = [
-    { key: "impressions", label: "Показы", fmt: fmtInt },
-    { key: "clicks", label: "Клики", fmt: fmtInt },
-    { key: "ctr", label: "CTR", fmt: fmtPct },
-    { key: "conversions", label: "Заявки", fmt: fmtInt },
-    { key: "qualifiedLeads", label: "Кач. заявки", fmt: fmtInt },
-    { key: "cpc", label: "CPC", fmt: fmtMoney },
-    { key: "cpl", label: "CPL", fmt: fmtMoney },
-    { key: "cpql", label: "CPQL", fmt: fmtMoney },
-    { key: "cost", label: "Затраты", fmt: fmtMoney },
+  const cols: { key: keyof CampaignSummary; label: string; fmt: (v: number | null) => string }[] = [
+    { key: "impressions", label: "Показы", fmt: (v) => fmtInt(v as number) },
+    { key: "clicks", label: "Клики", fmt: (v) => fmtInt(v as number) },
+    { key: "ctr", label: "CTR", fmt: (v) => fmtPct(v as number) },
+    { key: "bounceRate", label: "Процент отказов", fmt: (v) => fmtOrDash(v, fmtPct) },
+    { key: "pagesPerSession", label: "Глубина просмотра", fmt: (v) => fmtOrDash(v, fmtDecimal) },
+    { key: "avgSessionDurationSec", label: "Время на сайте", fmt: (v) => fmtOrDash(v, fmtDuration) },
+    { key: "conversions", label: "Заявки", fmt: (v) => fmtInt(v as number) },
+    { key: "qualifiedLeads", label: "Кач. заявки", fmt: (v) => fmtInt(v as number) },
+    { key: "cpc", label: "CPC", fmt: (v) => fmtMoney(v as number) },
+    { key: "cpl", label: "CPL", fmt: (v) => fmtMoney(v as number) },
+    { key: "cpql", label: "CPQL", fmt: (v) => fmtMoney(v as number) },
+    { key: "cost", label: "Затраты", fmt: (v) => fmtMoney(v as number) },
   ];
 
   return (
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-      <table className="w-full min-w-[900px] text-sm">
+      <table className="w-full min-w-[1300px] text-sm">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">
             <th className="px-4 py-3">Кампания</th>
@@ -50,7 +53,7 @@ export function CampaignsTable({
               </td>
               {cols.map((c) => (
                 <td key={c.key} className="px-4 py-2.5 text-right text-slate-700">
-                  {c.fmt(r[c.key] as number)}
+                  {c.fmt(r[c.key] as number | null)}
                 </td>
               ))}
             </tr>
@@ -59,7 +62,7 @@ export function CampaignsTable({
             <td className="px-4 py-3">SUMMARY</td>
             {cols.map((c) => (
               <td key={c.key} className="px-4 py-3 text-right">
-                {c.fmt(total[c.key] as number)}
+                {c.fmt(total[c.key] as number | null)}
               </td>
             ))}
           </tr>

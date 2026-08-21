@@ -52,79 +52,100 @@ export interface CampaignSummary {
   cr: number;
   cpl: number;
   cpql: number;
+  bounceRate: number | null;
+  pagesPerSession: number | null;
+  avgSessionDurationSec: number | null;
+}
+
+interface CampaignAccumulator extends CampaignSummary {
+  ga4Weight: number;
+  bounceRateWeighted: number;
+  pagesPerSessionWeighted: number;
+  avgSessionDurationWeighted: number;
+}
+
+function emptyAccumulator(campaign: string): CampaignAccumulator {
+  return {
+    campaign,
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversions: 0,
+    qualifiedLeads: 0,
+    ctr: 0,
+    cpc: 0,
+    cr: 0,
+    cpl: 0,
+    cpql: 0,
+    bounceRate: null,
+    pagesPerSession: null,
+    avgSessionDurationSec: null,
+    ga4Weight: 0,
+    bounceRateWeighted: 0,
+    pagesPerSessionWeighted: 0,
+    avgSessionDurationWeighted: 0,
+  };
+}
+
+function finalizeCampaignSummary(c: CampaignAccumulator): CampaignSummary {
+  return {
+    campaign: c.campaign,
+    impressions: c.impressions,
+    clicks: c.clicks,
+    cost: c.cost,
+    conversions: c.conversions,
+    qualifiedLeads: c.qualifiedLeads,
+    ctr: safeDiv(c.clicks, c.impressions),
+    cpc: safeDiv(c.cost, c.clicks),
+    cr: safeDiv(c.conversions, c.clicks),
+    cpl: safeDiv(c.cost, c.conversions),
+    cpql: safeDiv(c.cost, c.qualifiedLeads),
+    bounceRate: c.ga4Weight > 0 ? c.bounceRateWeighted / c.ga4Weight : null,
+    pagesPerSession: c.ga4Weight > 0 ? c.pagesPerSessionWeighted / c.ga4Weight : null,
+    avgSessionDurationSec: c.ga4Weight > 0 ? c.avgSessionDurationWeighted / c.ga4Weight : null,
+  };
 }
 
 export function summarizeByCampaign(rows: JoinedRow[]): CampaignSummary[] {
-  const map = new Map<string, CampaignSummary>();
+  const map = new Map<string, CampaignAccumulator>();
   for (const r of rows) {
-    const existing = map.get(r.campaign) ?? {
-      campaign: r.campaign,
-      impressions: 0,
-      clicks: 0,
-      cost: 0,
-      conversions: 0,
-      qualifiedLeads: 0,
-      ctr: 0,
-      cpc: 0,
-      cr: 0,
-      cpl: 0,
-      cpql: 0,
-    };
+    const existing = map.get(r.campaign) ?? emptyAccumulator(r.campaign);
     existing.impressions += r.impressions;
     existing.clicks += r.clicks;
     existing.cost += r.cost;
     existing.conversions += r.conversions;
     existing.qualifiedLeads += r.qualifiedLeads;
+    // Взвешиваем GA4-метрики по кликам того дня, чтобы дни с большим трафиком
+    // влияли на средний показатель сильнее, чем дни почти без кликов.
+    if (r.bounceRate !== null && r.clicks > 0) {
+      existing.ga4Weight += r.clicks;
+      existing.bounceRateWeighted += r.bounceRate * r.clicks;
+      existing.pagesPerSessionWeighted += (r.pagesPerSession ?? 0) * r.clicks;
+      existing.avgSessionDurationWeighted += (r.avgSessionDurationSec ?? 0) * r.clicks;
+    }
     map.set(r.campaign, existing);
   }
   return Array.from(map.values())
-    .map((c) => ({
-      ...c,
-      ctr: safeDiv(c.clicks, c.impressions),
-      cpc: safeDiv(c.cost, c.clicks),
-      cr: safeDiv(c.conversions, c.clicks),
-      cpl: safeDiv(c.cost, c.conversions),
-      cpql: safeDiv(c.cost, c.qualifiedLeads),
-    }))
+    .map(finalizeCampaignSummary)
     .sort((a, b) => b.cost - a.cost);
 }
 
 export function grandTotal(rows: JoinedRow[]): CampaignSummary {
-  const summaries = summarizeByCampaign(rows);
-  const total = summaries.reduce(
-    (acc, c) => ({
-      campaign: "TOTAL",
-      impressions: acc.impressions + c.impressions,
-      clicks: acc.clicks + c.clicks,
-      cost: acc.cost + c.cost,
-      conversions: acc.conversions + c.conversions,
-      qualifiedLeads: acc.qualifiedLeads + c.qualifiedLeads,
-      ctr: 0,
-      cpc: 0,
-      cr: 0,
-      cpl: 0,
-      cpql: 0,
-    }),
-    {
-      campaign: "TOTAL",
-      impressions: 0,
-      clicks: 0,
-      cost: 0,
-      conversions: 0,
-      qualifiedLeads: 0,
-      ctr: 0,
-      cpc: 0,
-      cr: 0,
-      cpl: 0,
-      cpql: 0,
+  const acc = rows.reduce((a, r) => {
+    a.impressions += r.impressions;
+    a.clicks += r.clicks;
+    a.cost += r.cost;
+    a.conversions += r.conversions;
+    a.qualifiedLeads += r.qualifiedLeads;
+    if (r.bounceRate !== null && r.clicks > 0) {
+      a.ga4Weight += r.clicks;
+      a.bounceRateWeighted += r.bounceRate * r.clicks;
+      a.pagesPerSessionWeighted += (r.pagesPerSession ?? 0) * r.clicks;
+      a.avgSessionDurationWeighted += (r.avgSessionDurationSec ?? 0) * r.clicks;
     }
-  );
-  total.ctr = safeDiv(total.clicks, total.impressions);
-  total.cpc = safeDiv(total.cost, total.clicks);
-  total.cr = safeDiv(total.conversions, total.clicks);
-  total.cpl = safeDiv(total.cost, total.conversions);
-  total.cpql = safeDiv(total.cost, total.qualifiedLeads);
-  return total;
+    return a;
+  }, emptyAccumulator("TOTAL"));
+  return finalizeCampaignSummary(acc);
 }
 
 export function filterByDays<T extends { date: string }>(rows: T[], days: number): T[] {

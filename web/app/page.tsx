@@ -4,7 +4,7 @@ import { resolveDateFilter } from "@/lib/dateFilter";
 import { KpiTile } from "@/components/KpiTile";
 import { TrendChart } from "@/components/TrendChart";
 import { DateRangePicker } from "@/components/DateRangePicker";
-import { fmtInt, fmtMoney, fmtPct } from "@/lib/format";
+import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
 
 export const revalidate = 300; // пересчёт кэша раз в 5 минут
 
@@ -45,6 +45,12 @@ export default async function DashboardPage({
         <KpiTile label="CPL" value={fmtMoney(total.cpl)} />
         <KpiTile label="CPQL" value={fmtMoney(total.cpql)} />
         <KpiTile label="CPC" value={fmtMoney(total.cpc)} />
+        <KpiTile label="Процент отказов" value={fmtOrDash(total.bounceRate, fmtPct)} />
+        <KpiTile label="Глубина просмотра" value={fmtOrDash(total.pagesPerSession, fmtDecimal)} />
+        <KpiTile
+          label="Время на сайте"
+          value={fmtOrDash(total.avgSessionDurationSec, fmtDuration)}
+        />
       </div>
 
       <TrendChart data={trend} />
