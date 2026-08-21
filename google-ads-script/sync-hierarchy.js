@@ -14,7 +14,7 @@
 
 const SHEET_ID = "11VIcvXJ2BDiOod331u3RpLFMYKnMbnsDktNZ9t6OWfU";
 const LOOKBACK_DAYS = 3;
-const MAX_HISTORY_DAYS = 30;
+const MAX_HISTORY_DAYS = 240;
 
 function main() {
   const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
