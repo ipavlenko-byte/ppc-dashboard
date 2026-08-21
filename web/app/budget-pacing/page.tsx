@@ -3,7 +3,7 @@ import { summarizeByCampaign, applyDateFilter, getPeriodBounds } from "@/lib/met
 import { resolveDateFilter } from "@/lib/dateFilter";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { fmtMoney, fmtPct, fmtOrDash } from "@/lib/format";
+import { fmtMoneyDual, fmtPct, fmtOrDash } from "@/lib/format";
 
 export const revalidate = 300;
 
@@ -105,10 +105,10 @@ export default async function BudgetPacingPage({
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-right text-slate-700">
-                        {fmtMoney(p.dailyBudget)}
+                        {fmtMoneyDual(p.dailyBudget)}
                       </td>
                       <td className="px-4 py-2.5 text-right text-slate-700">
-                        {fmtMoney(p.avgDailySpend)}
+                        {fmtMoneyDual(p.avgDailySpend)}
                       </td>
                       <td className="px-4 py-2.5 text-right text-slate-700">
                         {fmtOrDash(p.usage, fmtPct)}

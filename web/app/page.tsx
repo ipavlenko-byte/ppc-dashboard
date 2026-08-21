@@ -4,7 +4,7 @@ import { resolveDateFilter } from "@/lib/dateFilter";
 import { KpiTile } from "@/components/KpiTile";
 import { TrendChart } from "@/components/TrendChart";
 import { DateRangePicker } from "@/components/DateRangePicker";
-import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
+import { fmtInt, fmtMoney, fmtUsd, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
 
 export const revalidate = 300; // пересчёт кэша раз в 5 минут
 
@@ -36,15 +36,15 @@ export default async function DashboardPage({
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <KpiTile label="Затраты" value={fmtMoney(total.cost)} />
+        <KpiTile label="Затраты" value={fmtMoney(total.cost)} subValue={`≈${fmtUsd(total.cost)}`} />
         <KpiTile label="Показы" value={fmtInt(total.impressions)} />
         <KpiTile label="Клики" value={fmtInt(total.clicks)} />
         <KpiTile label="CTR" value={fmtPct(total.ctr)} />
         <KpiTile label="Заявки" value={fmtInt(total.conversions)} />
         <KpiTile label="Кач. заявки" value={fmtInt(total.qualifiedLeads)} />
-        <KpiTile label="CPL" value={fmtMoney(total.cpl)} />
-        <KpiTile label="CPQL" value={fmtMoney(total.cpql)} />
-        <KpiTile label="CPC" value={fmtMoney(total.cpc)} />
+        <KpiTile label="CPL" value={fmtMoney(total.cpl)} subValue={`≈${fmtUsd(total.cpl)}`} />
+        <KpiTile label="CPQL" value={fmtMoney(total.cpql)} subValue={`≈${fmtUsd(total.cpql)}`} />
+        <KpiTile label="CPC" value={fmtMoney(total.cpc)} subValue={`≈${fmtUsd(total.cpc)}`} />
         <KpiTile label="Процент отказов" value={fmtOrDash(total.bounceRate, fmtPct)} />
         <KpiTile label="Глубина просмотра" value={fmtOrDash(total.pagesPerSession, fmtDecimal)} />
         <KpiTile

@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { CampaignSummary } from "@/lib/metrics";
 import { AnomalyFlag } from "@/lib/anomalies";
 import { CampaignTrend, TrendLevel } from "@/lib/trends";
-import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
+import { fmtInt, fmtMoneyDual, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
 import { ExportCsvButton } from "./ExportCsvButton";
 
 function TrendArrow({ level }: { level: TrendLevel }) {
@@ -41,16 +41,16 @@ export function CampaignsTable({
     { key: "clicks", label: "Клики", fmt: (v) => fmtInt(v as number) },
     { key: "ctr", label: "CTR", fmt: (v) => fmtPct(v as number), trendKey: "ctr" },
     { key: "searchImpressionShare", label: "IS (Search)", fmt: (v) => fmtOrDash(v, fmtPct) },
-    { key: "dailyBudget", label: "Дневной бюджет", fmt: (v) => fmtOrDash(v, fmtMoney) },
+    { key: "dailyBudget", label: "Дневной бюджет", fmt: (v) => fmtOrDash(v, fmtMoneyDual) },
     { key: "bounceRate", label: "Процент отказов", fmt: (v) => fmtOrDash(v, fmtPct) },
     { key: "pagesPerSession", label: "Глубина просмотра", fmt: (v) => fmtOrDash(v, fmtDecimal) },
     { key: "avgSessionDurationSec", label: "Время на сайте", fmt: (v) => fmtOrDash(v, fmtDuration) },
     { key: "conversions", label: "Заявки", fmt: (v) => fmtInt(v as number) },
     { key: "qualifiedLeads", label: "Кач. заявки", fmt: (v) => fmtInt(v as number) },
-    { key: "cpc", label: "CPC", fmt: (v) => fmtMoney(v as number), trendKey: "cpc" },
-    { key: "cpl", label: "CPL", fmt: (v) => fmtMoney(v as number) },
-    { key: "cpql", label: "CPQL", fmt: (v) => fmtMoney(v as number) },
-    { key: "cost", label: "Затраты", fmt: (v) => fmtMoney(v as number) },
+    { key: "cpc", label: "CPC", fmt: (v) => fmtMoneyDual(v as number), trendKey: "cpc" },
+    { key: "cpl", label: "CPL", fmt: (v) => fmtMoneyDual(v as number) },
+    { key: "cpql", label: "CPQL", fmt: (v) => fmtMoneyDual(v as number) },
+    { key: "cost", label: "Затраты", fmt: (v) => fmtMoneyDual(v as number) },
   ];
 
   const csvRows = [...rows, total].map((r) => [

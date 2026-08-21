@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdSummary } from "@/lib/metrics";
-import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
+import { fmtInt, fmtMoneyDual, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
 import { ExportCsvButton } from "./ExportCsvButton";
 
 export function MetricsTable({
@@ -40,9 +40,9 @@ export function MetricsTable({
         ]
       : []),
     { key: "conversions", label: "Заявки", fmt: (v) => fmtInt(v as number) },
-    { key: "cpc", label: "CPC", fmt: (v) => fmtMoney(v as number) },
-    { key: "cpl", label: "CPL", fmt: (v) => fmtMoney(v as number) },
-    { key: "cost", label: "Затраты", fmt: (v) => fmtMoney(v as number) },
+    { key: "cpc", label: "CPC", fmt: (v) => fmtMoneyDual(v as number) },
+    { key: "cpl", label: "CPL", fmt: (v) => fmtMoneyDual(v as number) },
+    { key: "cost", label: "Затраты", fmt: (v) => fmtMoneyDual(v as number) },
   ];
 
   const csvRows = [...rows, ...(rows.length > 0 ? [total] : [])].map((r) => [
