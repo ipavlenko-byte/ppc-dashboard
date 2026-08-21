@@ -22,9 +22,6 @@ export function sheetsConfigured() {
 let cachedClient: ReturnType<typeof google.sheets> | null = null;
 
 function getSheetsClient() {
-  // Один клиент/OAuth-сессия на весь процесс, а не по одному на каждую вкладку —
-  // иначе каждый параллельный readTab() тянул свою собственную авторизацию,
-  // и Google иногда отвечал transient-ошибкой на такой всплеск запросов.
   if (!cachedClient) {
     const credentials = JSON.parse(SERVICE_ACCOUNT_JSON as string);
     const auth = new google.auth.GoogleAuth({
@@ -36,186 +33,195 @@ function getSheetsClient() {
   return cachedClient;
 }
 
-function isTabMissingError(err: unknown): boolean {
-  const message = err instanceof Error ? err.message : String(err);
-  return /Unable to parse range|Requested entity was not found/i.test(message);
-}
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function readTab(range: string): Promise<string[][]> {
+// Порядок веток здесь определяет порядок значений в valueRanges ответа batchGet.
+const TAB_RANGES = {
+  adsDaily: "ads_daily!A:F",
+  ga4Daily: "ga4_daily!A:E",
+  qualifiedLeads: "qualified_leads!A:C",
+  adGroupsDaily: "ad_groups_daily!A:G",
+  keywordsDaily: "keywords_daily!A:I",
+  adCreativesDaily: "ad_creatives_daily!A:I",
+  searchTermsDaily: "search_terms_daily!A:H",
+  deviceDaily: "device_daily!A:G",
+  geoDaily: "geo_daily!A:G",
+  ga4AdGroupDaily: "ga4_ad_group_daily!A:F",
+} as const;
+
+type TabKey = keyof typeof TAB_RANGES;
+
+/**
+ * Один batchGet-запрос читает все вкладки разом (1 read request вместо 10).
+ * Раньше каждая вкладка читалась отдельным вызовом values.get — 10 параллельных
+ * запросов на каждую загрузку страницы упирались в лимит Google Sheets API
+ * (60 read requests/мин на сервис-аккаунт) уже после нескольких переключений фильтров.
+ */
+async function batchReadTabs(): Promise<Record<TabKey, string[][]>> {
   const sheets = getSheetsClient();
+  const keys = Object.keys(TAB_RANGES) as TabKey[];
+  const ranges = keys.map((k) => TAB_RANGES[k]);
   const maxAttempts = 3;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const res = await sheets.spreadsheets.values.get({
+      const res = await sheets.spreadsheets.values.batchGet({
         spreadsheetId: SHEET_ID,
-        range,
+        ranges,
       });
-      const values = res.data.values ?? [];
-      return values.slice(1) as string[][]; // drop header row
+      const valueRanges = res.data.valueRanges ?? [];
+      const result = {} as Record<TabKey, string[][]>;
+      keys.forEach((key, i) => {
+        const values = valueRanges[i]?.values ?? [];
+        result[key] = (values.slice(1) ?? []) as string[][]; // drop header row
+      });
+      return result;
     } catch (err) {
-      if (isTabMissingError(err)) {
-        // Вкладка ещё не создана (например, sync-hierarchy.js ещё не запускали) — это ожидаемо.
-        return [];
-      }
       if (attempt === maxAttempts) {
         const message = err instanceof Error ? err.message : String(err);
-        console.error(`Sheets read failed for range "${range}" after ${maxAttempts} attempts: ${message}`);
-        return [];
+        console.error(`Sheets batchGet failed after ${maxAttempts} attempts: ${message}`);
+        return Object.fromEntries(keys.map((k) => [k, []])) as unknown as Record<TabKey, string[][]>;
       }
-      await sleep(300 * attempt);
+      await sleep(400 * attempt);
     }
   }
-  return [];
+  return Object.fromEntries(keys.map((k) => [k, []])) as unknown as Record<TabKey, string[][]>;
 }
 
 const num = (v: string | undefined) => Number(v ?? 0) || 0;
 
-export async function fetchAdsDaily(): Promise<AdsDailyRow[]> {
-  const rows = await readTab("ads_daily!A:F");
-  return rows
-    .filter((r) => r[0] && r[1])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      impressions: num(r[2]),
-      clicks: num(r[3]),
-      cost: num(r[4]),
-      conversions: num(r[5]),
-    }));
+export interface AllSheetData {
+  adsDaily: AdsDailyRow[];
+  ga4Daily: Ga4DailyRow[];
+  qualifiedLeads: QualifiedLeadsRow[];
+  adGroupsDaily: AdGroupDailyRow[];
+  keywordsDaily: KeywordDailyRow[];
+  adCreativesDaily: AdCreativeDailyRow[];
+  searchTermsDaily: SearchTermDailyRow[];
+  deviceDaily: DeviceDailyRow[];
+  geoDaily: GeoDailyRow[];
+  ga4AdGroupDaily: Ga4AdGroupDailyRow[];
 }
 
-export async function fetchGa4Daily(): Promise<Ga4DailyRow[]> {
-  const rows = await readTab("ga4_daily!A:E");
-  return rows
-    .filter((r) => r[0] && r[1])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      bounceRate: num(r[2]),
-      pagesPerSession: num(r[3]),
-      avgSessionDurationSec: num(r[4]),
-    }));
-}
+export async function fetchAllSheetData(): Promise<AllSheetData> {
+  const tabs = await batchReadTabs();
 
-export async function fetchQualifiedLeads(): Promise<QualifiedLeadsRow[]> {
-  const rows = await readTab("qualified_leads!A:C");
-  return rows
-    .filter((r) => r[0] && r[1])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      qualifiedLeads: num(r[2]),
-    }));
-}
+  return {
+    adsDaily: tabs.adsDaily
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        impressions: num(r[2]),
+        clicks: num(r[3]),
+        cost: num(r[4]),
+        conversions: num(r[5]),
+      })),
 
-export async function fetchAdGroupsDaily(): Promise<AdGroupDailyRow[]> {
-  const rows = await readTab("ad_groups_daily!A:G");
-  return rows
-    .filter((r) => r[0] && r[1] && r[2])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      adGroup: r[2],
-      impressions: num(r[3]),
-      clicks: num(r[4]),
-      cost: num(r[5]),
-      conversions: num(r[6]),
-    }));
-}
+    ga4Daily: tabs.ga4Daily
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        bounceRate: num(r[2]),
+        pagesPerSession: num(r[3]),
+        avgSessionDurationSec: num(r[4]),
+      })),
 
-export async function fetchKeywordsDaily(): Promise<KeywordDailyRow[]> {
-  const rows = await readTab("keywords_daily!A:I");
-  return rows
-    .filter((r) => r[0] && r[1] && r[2] && r[3])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      adGroup: r[2],
-      keyword: r[3],
-      matchType: r[4],
-      impressions: num(r[5]),
-      clicks: num(r[6]),
-      cost: num(r[7]),
-      conversions: num(r[8]),
-    }));
-}
+    qualifiedLeads: tabs.qualifiedLeads
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        qualifiedLeads: num(r[2]),
+      })),
 
-export async function fetchAdCreativesDaily(): Promise<AdCreativeDailyRow[]> {
-  const rows = await readTab("ad_creatives_daily!A:I");
-  return rows
-    .filter((r) => r[0] && r[1] && r[2] && r[3])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      adGroup: r[2],
-      adId: r[3],
-      adType: r[4],
-      impressions: num(r[5]),
-      clicks: num(r[6]),
-      cost: num(r[7]),
-      conversions: num(r[8]),
-    }));
-}
+    adGroupsDaily: tabs.adGroupsDaily
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        adGroup: r[2],
+        impressions: num(r[3]),
+        clicks: num(r[4]),
+        cost: num(r[5]),
+        conversions: num(r[6]),
+      })),
 
-export async function fetchSearchTermsDaily(): Promise<SearchTermDailyRow[]> {
-  const rows = await readTab("search_terms_daily!A:H");
-  return rows
-    .filter((r) => r[0] && r[1] && r[2] && r[3])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      adGroup: r[2],
-      searchTerm: r[3],
-      impressions: num(r[4]),
-      clicks: num(r[5]),
-      cost: num(r[6]),
-      conversions: num(r[7]),
-    }));
-}
+    keywordsDaily: tabs.keywordsDaily
+      .filter((r) => r[0] && r[1] && r[2] && r[3])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        adGroup: r[2],
+        keyword: r[3],
+        matchType: r[4],
+        impressions: num(r[5]),
+        clicks: num(r[6]),
+        cost: num(r[7]),
+        conversions: num(r[8]),
+      })),
 
-export async function fetchDeviceDaily(): Promise<DeviceDailyRow[]> {
-  const rows = await readTab("device_daily!A:G");
-  return rows
-    .filter((r) => r[0] && r[1] && r[2])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      device: r[2],
-      impressions: num(r[3]),
-      clicks: num(r[4]),
-      cost: num(r[5]),
-      conversions: num(r[6]),
-    }));
-}
+    adCreativesDaily: tabs.adCreativesDaily
+      .filter((r) => r[0] && r[1] && r[2] && r[3])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        adGroup: r[2],
+        adId: r[3],
+        adType: r[4],
+        impressions: num(r[5]),
+        clicks: num(r[6]),
+        cost: num(r[7]),
+        conversions: num(r[8]),
+      })),
 
-export async function fetchGeoDaily(): Promise<GeoDailyRow[]> {
-  const rows = await readTab("geo_daily!A:G");
-  return rows
-    .filter((r) => r[0] && r[1] && r[2])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      country: r[2],
-      impressions: num(r[3]),
-      clicks: num(r[4]),
-      cost: num(r[5]),
-      conversions: num(r[6]),
-    }));
-}
+    searchTermsDaily: tabs.searchTermsDaily
+      .filter((r) => r[0] && r[1] && r[2] && r[3])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        adGroup: r[2],
+        searchTerm: r[3],
+        impressions: num(r[4]),
+        clicks: num(r[5]),
+        cost: num(r[6]),
+        conversions: num(r[7]),
+      })),
 
-export async function fetchGa4AdGroupDaily(): Promise<Ga4AdGroupDailyRow[]> {
-  const rows = await readTab("ga4_ad_group_daily!A:F");
-  return rows
-    .filter((r) => r[0] && r[1] && r[2])
-    .map((r) => ({
-      date: r[0],
-      campaign: r[1],
-      adGroup: r[2],
-      bounceRate: num(r[3]),
-      pagesPerSession: num(r[4]),
-      avgSessionDurationSec: num(r[5]),
-    }));
+    deviceDaily: tabs.deviceDaily
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        device: r[2],
+        impressions: num(r[3]),
+        clicks: num(r[4]),
+        cost: num(r[5]),
+        conversions: num(r[6]),
+      })),
+
+    geoDaily: tabs.geoDaily
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        country: r[2],
+        impressions: num(r[3]),
+        clicks: num(r[4]),
+        cost: num(r[5]),
+        conversions: num(r[6]),
+      })),
+
+    ga4AdGroupDaily: tabs.ga4AdGroupDaily
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        adGroup: r[2],
+        bounceRate: num(r[3]),
+        pagesPerSession: num(r[4]),
+        avgSessionDurationSec: num(r[5]),
+      })),
+  };
 }

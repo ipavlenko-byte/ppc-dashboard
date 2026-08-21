@@ -23,19 +23,7 @@ import {
   generateMockGeo,
   generateMockGa4AdGroups,
 } from "./mockData";
-import {
-  fetchAdsDaily,
-  fetchGa4Daily,
-  fetchQualifiedLeads,
-  fetchAdGroupsDaily,
-  fetchKeywordsDaily,
-  fetchAdCreativesDaily,
-  fetchSearchTermsDaily,
-  fetchDeviceDaily,
-  fetchGeoDaily,
-  fetchGa4AdGroupDaily,
-  sheetsConfigured,
-} from "./sheets";
+import { fetchAllSheetData, sheetsConfigured } from "./sheets";
 import { joinRows } from "./metrics";
 
 export interface DashboardData {
@@ -52,28 +40,16 @@ export interface DashboardData {
 
 export async function getDashboardData(): Promise<DashboardData> {
   if (sheetsConfigured()) {
-    const [ads, ga4, leads, adGroups, keywords, adCreatives, searchTerms, devices, geo, ga4AdGroups] =
-      await Promise.all([
-        fetchAdsDaily(),
-        fetchGa4Daily(),
-        fetchQualifiedLeads(),
-        fetchAdGroupsDaily(),
-        fetchKeywordsDaily(),
-        fetchAdCreativesDaily(),
-        fetchSearchTermsDaily(),
-        fetchDeviceDaily(),
-        fetchGeoDaily(),
-        fetchGa4AdGroupDaily(),
-      ]);
+    const data = await fetchAllSheetData();
     return {
-      rows: joinRows(ads, ga4, leads),
-      adGroups,
-      keywords,
-      adCreatives,
-      searchTerms,
-      devices,
-      geo,
-      ga4AdGroups,
+      rows: joinRows(data.adsDaily, data.ga4Daily, data.qualifiedLeads),
+      adGroups: data.adGroupsDaily,
+      keywords: data.keywordsDaily,
+      adCreatives: data.adCreativesDaily,
+      searchTerms: data.searchTermsDaily,
+      devices: data.deviceDaily,
+      geo: data.geoDaily,
+      ga4AdGroups: data.ga4AdGroupDaily,
       source: "sheets",
     };
   }
