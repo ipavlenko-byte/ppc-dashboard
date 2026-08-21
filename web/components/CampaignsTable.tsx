@@ -1,15 +1,19 @@
 import Link from "next/link";
+import clsx from "clsx";
 import { CampaignSummary } from "@/lib/metrics";
+import { AnomalyFlag } from "@/lib/anomalies";
 import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
 
 export function CampaignsTable({
   rows,
   total,
   linkFor,
+  flagFor,
 }: {
   rows: CampaignSummary[];
   total: CampaignSummary;
   linkFor?: (campaign: string) => string;
+  flagFor?: (campaign: CampaignSummary) => AnomalyFlag;
 }) {
   const cols: { key: keyof CampaignSummary; label: string; fmt: (v: number | null) => string }[] = [
     { key: "impressions", label: "Показы", fmt: (v) => fmtInt(v as number) },
@@ -40,24 +44,39 @@ export function CampaignsTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.campaign} className="border-b border-slate-100 hover:bg-slate-50">
-              <td className="px-4 py-2.5 font-medium text-slate-800">
-                {linkFor ? (
-                  <Link href={linkFor(r.campaign)} className="text-blue-600 hover:underline">
-                    {r.campaign}
-                  </Link>
-                ) : (
-                  r.campaign
+          {rows.map((r) => {
+            const flag = flagFor?.(r);
+            return (
+              <tr
+                key={r.campaign}
+                title={flag?.reasons.join(" · ")}
+                className={clsx(
+                  "border-b border-slate-100 hover:bg-slate-50",
+                  flag?.level === "critical" && "bg-red-50 hover:bg-red-100",
+                  flag?.level === "warning" && "bg-amber-50 hover:bg-amber-100"
                 )}
-              </td>
-              {cols.map((c) => (
-                <td key={c.key} className="px-4 py-2.5 text-right text-slate-700">
-                  {c.fmt(r[c.key] as number | null)}
+              >
+                <td className="px-4 py-2.5 font-medium text-slate-800">
+                  <span className="flex items-center gap-1.5">
+                    {flag?.level === "critical" && <span aria-hidden>🔴</span>}
+                    {flag?.level === "warning" && <span aria-hidden>🟡</span>}
+                    {linkFor ? (
+                      <Link href={linkFor(r.campaign)} className="text-blue-600 hover:underline">
+                        {r.campaign}
+                      </Link>
+                    ) : (
+                      r.campaign
+                    )}
+                  </span>
                 </td>
-              ))}
-            </tr>
-          ))}
+                {cols.map((c) => (
+                  <td key={c.key} className="px-4 py-2.5 text-right text-slate-700">
+                    {c.fmt(r[c.key] as number | null)}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
           <tr className="bg-emerald-50 font-semibold text-slate-900">
             <td className="px-4 py-3">SUMMARY</td>
             {cols.map((c) => (

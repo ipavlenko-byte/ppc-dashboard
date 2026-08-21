@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdSummary } from "@/lib/metrics";
-import { fmtInt, fmtMoney, fmtPct } from "@/lib/format";
+import { fmtInt, fmtMoney, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
 
 export function MetricsTable({
   rows,
@@ -13,14 +13,35 @@ export function MetricsTable({
   nameLabel: string;
   linkFor?: (name: string) => string;
 }) {
-  const cols: { key: keyof AdSummary; label: string; fmt: (v: number) => string }[] = [
-    { key: "impressions", label: "Показы", fmt: fmtInt },
-    { key: "clicks", label: "Клики", fmt: fmtInt },
-    { key: "ctr", label: "CTR", fmt: fmtPct },
-    { key: "conversions", label: "Заявки", fmt: fmtInt },
-    { key: "cpc", label: "CPC", fmt: fmtMoney },
-    { key: "cpl", label: "CPL", fmt: fmtMoney },
-    { key: "cost", label: "Затраты", fmt: fmtMoney },
+  const hasGa4 = rows.some((r) => r.bounceRate !== null);
+
+  const cols: { key: keyof AdSummary; label: string; fmt: (v: number | null) => string }[] = [
+    { key: "impressions", label: "Показы", fmt: (v) => fmtInt(v as number) },
+    { key: "clicks", label: "Клики", fmt: (v) => fmtInt(v as number) },
+    { key: "ctr", label: "CTR", fmt: (v) => fmtPct(v as number) },
+    ...(hasGa4
+      ? [
+          {
+            key: "bounceRate" as const,
+            label: "Процент отказов",
+            fmt: (v: number | null) => fmtOrDash(v, fmtPct),
+          },
+          {
+            key: "pagesPerSession" as const,
+            label: "Глубина просмотра",
+            fmt: (v: number | null) => fmtOrDash(v, fmtDecimal),
+          },
+          {
+            key: "avgSessionDurationSec" as const,
+            label: "Время на сайте",
+            fmt: (v: number | null) => fmtOrDash(v, fmtDuration),
+          },
+        ]
+      : []),
+    { key: "conversions", label: "Заявки", fmt: (v) => fmtInt(v as number) },
+    { key: "cpc", label: "CPC", fmt: (v) => fmtMoney(v as number) },
+    { key: "cpl", label: "CPL", fmt: (v) => fmtMoney(v as number) },
+    { key: "cost", label: "Затраты", fmt: (v) => fmtMoney(v as number) },
   ];
 
   return (
@@ -57,7 +78,7 @@ export function MetricsTable({
               </td>
               {cols.map((c) => (
                 <td key={c.key} className="px-4 py-2.5 text-right text-slate-700">
-                  {c.fmt(r[c.key] as number)}
+                  {c.fmt(r[c.key] as number | null)}
                 </td>
               ))}
             </tr>
@@ -67,7 +88,7 @@ export function MetricsTable({
               <td className="px-4 py-3">SUMMARY</td>
               {cols.map((c) => (
                 <td key={c.key} className="px-4 py-3 text-right">
-                  {c.fmt(total[c.key] as number)}
+                  {c.fmt(total[c.key] as number | null)}
                 </td>
               ))}
             </tr>

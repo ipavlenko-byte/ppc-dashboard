@@ -6,6 +6,9 @@ import {
   KeywordDailyRow,
   AdCreativeDailyRow,
   SearchTermDailyRow,
+  DeviceDailyRow,
+  GeoDailyRow,
+  Ga4AdGroupDailyRow,
   JoinedRow,
 } from "./types";
 import {
@@ -16,6 +19,9 @@ import {
   generateMockKeywords,
   generateMockAdCreatives,
   generateMockSearchTerms,
+  generateMockDevices,
+  generateMockGeo,
+  generateMockGa4AdGroups,
 } from "./mockData";
 import {
   fetchAdsDaily,
@@ -25,6 +31,9 @@ import {
   fetchKeywordsDaily,
   fetchAdCreativesDaily,
   fetchSearchTermsDaily,
+  fetchDeviceDaily,
+  fetchGeoDaily,
+  fetchGa4AdGroupDaily,
   sheetsConfigured,
 } from "./sheets";
 import { joinRows } from "./metrics";
@@ -35,26 +44,36 @@ export interface DashboardData {
   keywords: KeywordDailyRow[];
   adCreatives: AdCreativeDailyRow[];
   searchTerms: SearchTermDailyRow[];
+  devices: DeviceDailyRow[];
+  geo: GeoDailyRow[];
+  ga4AdGroups: Ga4AdGroupDailyRow[];
   source: "sheets" | "mock";
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
   if (sheetsConfigured()) {
-    const [ads, ga4, leads, adGroups, keywords, adCreatives, searchTerms] = await Promise.all([
-      fetchAdsDaily(),
-      fetchGa4Daily(),
-      fetchQualifiedLeads(),
-      fetchAdGroupsDaily(),
-      fetchKeywordsDaily(),
-      fetchAdCreativesDaily(),
-      fetchSearchTermsDaily(),
-    ]);
+    const [ads, ga4, leads, adGroups, keywords, adCreatives, searchTerms, devices, geo, ga4AdGroups] =
+      await Promise.all([
+        fetchAdsDaily(),
+        fetchGa4Daily(),
+        fetchQualifiedLeads(),
+        fetchAdGroupsDaily(),
+        fetchKeywordsDaily(),
+        fetchAdCreativesDaily(),
+        fetchSearchTermsDaily(),
+        fetchDeviceDaily(),
+        fetchGeoDaily(),
+        fetchGa4AdGroupDaily(),
+      ]);
     return {
       rows: joinRows(ads, ga4, leads),
       adGroups,
       keywords,
       adCreatives,
       searchTerms,
+      devices,
+      geo,
+      ga4AdGroups,
       source: "sheets",
     };
   }
@@ -66,6 +85,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   const keywords = generateMockKeywords(adGroups);
   const adCreatives = generateMockAdCreatives(adGroups);
   const searchTerms = generateMockSearchTerms(adGroups);
+  const devices = generateMockDevices(ads);
+  const geo = generateMockGeo(ads);
+  const ga4AdGroups = generateMockGa4AdGroups(adGroups);
 
   return {
     rows: joinRows(ads, ga4, leads),
@@ -73,6 +95,9 @@ export async function getDashboardData(): Promise<DashboardData> {
     keywords,
     adCreatives,
     searchTerms,
+    devices,
+    geo,
+    ga4AdGroups,
     source: "mock",
   };
 }

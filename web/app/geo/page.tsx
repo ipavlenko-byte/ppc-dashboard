@@ -7,7 +7,7 @@ import { CampaignFilter } from "@/components/CampaignFilter";
 
 export const revalidate = 300;
 
-export default async function SearchTermsPage({
+export default async function GeoPage({
   searchParams,
 }: {
   searchParams: Promise<{ days?: string; from?: string; to?: string; campaign?: string }>;
@@ -16,35 +16,30 @@ export default async function SearchTermsPage({
   const filter = resolveDateFilter(sp);
   const campaign = sp.campaign ?? "";
 
-  const { searchTerms } = await getDashboardData();
-  const campaigns = Array.from(new Set(searchTerms.map((r) => r.campaign))).sort();
+  const { geo } = await getDashboardData();
+  const campaigns = Array.from(new Set(geo.map((r) => r.campaign))).sort();
 
   const filtered = applyDateFilter(
-    campaign ? searchTerms.filter((r) => r.campaign === campaign) : searchTerms,
+    campaign ? geo.filter((r) => r.campaign === campaign) : geo,
     filter
   );
-  const summaries = summarizeGeneric(filtered, (r) => r.searchTerm);
+  const summaries = summarizeGeneric(filtered, (r) => r.country);
   const total = grandTotalGeneric(summaries);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Поисковые запросы — {filter.label}</h1>
+        <h1 className="text-xl font-semibold">География — {filter.label}</h1>
         <div className="flex flex-wrap items-center gap-3">
-          <CampaignFilter
-            campaigns={campaigns}
-            current={campaign}
-            filter={filter}
-            basePath="/search-terms"
-          />
+          <CampaignFilter campaigns={campaigns} current={campaign} filter={filter} basePath="/geo" />
           <DateRangePicker
-            basePath="/search-terms"
+            basePath="/geo"
             current={filter}
             extraParams={campaign ? { campaign } : undefined}
           />
         </div>
       </div>
-      <MetricsTable rows={summaries} total={total} nameLabel="Поисковый запрос" />
+      <MetricsTable rows={summaries} total={total} nameLabel="Страна" />
     </div>
   );
 }

@@ -29,14 +29,22 @@
 4. Настройте расписание, например ежедневно в 06:15 (после основного скрипта).
 5. Скользящее окно — 30 дней: старые строки удаляются автоматически при каждом запуске, размер таблицы не растёт бесконечно.
 
-## 3. Синхронизация GA4
+## 2c. Устройства и география
+
+1. В том же аккаунте Google Ads → **Bulk Actions → Scripts** → **"+"** для ещё одного, отдельного скрипта.
+2. Вставьте содержимое [google-ads-script/sync-segments.js](google-ads-script/sync-segments.js), замените `SHEET_ID`.
+3. **Preview → Run**, авторизуйте. Скрипт создаст вкладки `device_daily` и `geo_daily`.
+4. Настройте расписание, например ежедневно в 06:30.
+5. Гео определяется по числовому ID страны из Google Ads — в скрипте зашита таблица соответствий для основных стран из кампаний Sellvia (US/CAN/UK/AUS/SG и т.д.). Если в дашборде увидите `Unknown (id)` — допишите этот ID в `COUNTRY_NAMES` внутри скрипта.
+
+## 3. Синхронизация GA4 (кампании + группы объявлений)
 
 1. Зайдите на [script.google.com](https://script.google.com) → **New project**.
-2. Вставьте содержимое [apps-script/sync-ga4.gs](apps-script/sync-ga4.gs) в `Code.gs`.
+2. Вставьте содержимое [apps-script/sync-ga4.gs](apps-script/sync-ga4.gs) в `Code.gs` (если уже настраивали раньше — просто замените старый код новым, это обновлённая версия с ещё одним отчётом).
 3. Слева откройте "Project Settings" → "Show appsscript.json" и замените его содержимым [apps-script/appsscript.json](apps-script/appsscript.json).
 4. В `Code.gs` замените `SHEET_ID` и `GA4_PROPERTY_ID` (числовой ID свойства GA4, Admin → Property Settings).
 5. Запустите функцию `syncGa4` вручную — Google запросит авторизацию (доступ к Sheets и к Google Analytics вашего аккаунта). Если аккаунт, под которым создаёте скрипт, не имеет доступа к нужному свойству GA4 — добавьте его как Viewer в GA4 (Admin → Property Access Management).
-6. Проверьте, что строки появились в `ga4_daily`.
+6. Проверьте, что строки появились в `ga4_daily` и `ga4_ad_group_daily`.
 7. Добавьте time-driven trigger (значок часов слева → Add Trigger) на `syncGa4`, ежедневно.
 
 ## 4. Сервис-аккаунт для веб-дашборда (только чтение Sheet)

@@ -1,4 +1,11 @@
-import { AdsDailyRow, Ga4DailyRow, QualifiedLeadsRow, JoinedRow, AdMetricsBase } from "./types";
+import {
+  AdsDailyRow,
+  Ga4DailyRow,
+  QualifiedLeadsRow,
+  JoinedRow,
+  AdMetricsBase,
+  AdGroupDailyRow,
+} from "./types";
 import { ResolvedDateFilter } from "./dateFilter";
 
 function normKey(date: string, campaign: string) {
@@ -177,6 +184,26 @@ export interface AdSummary {
   cpc: number;
   cr: number;
   cpl: number;
+  bounceRate: number | null;
+  pagesPerSession: number | null;
+  avgSessionDurationSec: number | null;
+}
+
+function emptyAdSummary(name: string): AdSummary {
+  return {
+    name,
+    impressions: 0,
+    clicks: 0,
+    cost: 0,
+    conversions: 0,
+    ctr: 0,
+    cpc: 0,
+    cr: 0,
+    cpl: 0,
+    bounceRate: null,
+    pagesPerSession: null,
+    avgSessionDurationSec: null,
+  };
 }
 
 export function summarizeGeneric<T extends AdMetricsBase>(
@@ -186,17 +213,7 @@ export function summarizeGeneric<T extends AdMetricsBase>(
   const map = new Map<string, AdSummary>();
   for (const r of rows) {
     const key = keyFn(r);
-    const existing = map.get(key) ?? {
-      name: key,
-      impressions: 0,
-      clicks: 0,
-      cost: 0,
-      conversions: 0,
-      ctr: 0,
-      cpc: 0,
-      cr: 0,
-      cpl: 0,
-    };
+    const existing = map.get(key) ?? emptyAdSummary(key);
     existing.impressions += r.impressions;
     existing.clicks += r.clicks;
     existing.cost += r.cost;
@@ -215,25 +232,95 @@ export function summarizeGeneric<T extends AdMetricsBase>(
 }
 
 export function grandTotalGeneric(summaries: AdSummary[]): AdSummary {
-  const total = summaries.reduce(
-    (acc, c) => ({
-      name: "SUMMARY",
-      impressions: acc.impressions + c.impressions,
-      clicks: acc.clicks + c.clicks,
-      cost: acc.cost + c.cost,
-      conversions: acc.conversions + c.conversions,
-      ctr: 0,
-      cpc: 0,
-      cr: 0,
-      cpl: 0,
-    }),
-    { name: "SUMMARY", impressions: 0, clicks: 0, cost: 0, conversions: 0, ctr: 0, cpc: 0, cr: 0, cpl: 0 }
-  );
+  let ga4Weight = 0;
+  let bounceRateWeighted = 0;
+  let pagesPerSessionWeighted = 0;
+  let avgSessionDurationWeighted = 0;
+
+  const total = summaries.reduce((acc, c) => {
+    acc.impressions += c.impressions;
+    acc.clicks += c.clicks;
+    acc.cost += c.cost;
+    acc.conversions += c.conversions;
+    if (c.bounceRate !== null && c.clicks > 0) {
+      ga4Weight += c.clicks;
+      bounceRateWeighted += c.bounceRate * c.clicks;
+      pagesPerSessionWeighted += (c.pagesPerSession ?? 0) * c.clicks;
+      avgSessionDurationWeighted += (c.avgSessionDurationSec ?? 0) * c.clicks;
+    }
+    return acc;
+  }, emptyAdSummary("SUMMARY"));
   total.ctr = safeDiv(total.clicks, total.impressions);
   total.cpc = safeDiv(total.cost, total.clicks);
   total.cr = safeDiv(total.conversions, total.clicks);
   total.cpl = safeDiv(total.cost, total.conversions);
+  total.bounceRate = ga4Weight > 0 ? bounceRateWeighted / ga4Weight : null;
+  total.pagesPerSession = ga4Weight > 0 ? pagesPerSessionWeighted / ga4Weight : null;
+  total.avgSessionDurationSec = ga4Weight > 0 ? avgSessionDurationWeighted / ga4Weight : null;
   return total;
+}
+
+interface Ga4Metrics {
+  date: string;
+  campaign: string;
+  adGroup: string;
+  bounceRate: number;
+  pagesPerSession: number;
+  avgSessionDurationSec: number;
+}
+
+export function summarizeAdGroupsWithGa4(
+  adGroupRows: AdGroupDailyRow[],
+  ga4Rows: Ga4Metrics[]
+): AdSummary[] {
+  const ga4Map = new Map(
+    ga4Rows.map((r) => [`${r.date}__${r.campaign}__${r.adGroup}`, r])
+  );
+
+  interface Acc extends AdSummary {
+    ga4Weight: number;
+    bounceRateWeighted: number;
+    pagesPerSessionWeighted: number;
+    avgSessionDurationWeighted: number;
+  }
+
+  const map = new Map<string, Acc>();
+  for (const r of adGroupRows) {
+    const key = r.adGroup;
+    const existing =
+      map.get(key) ??
+      ({ ...emptyAdSummary(key), ga4Weight: 0, bounceRateWeighted: 0, pagesPerSessionWeighted: 0, avgSessionDurationWeighted: 0 } as Acc);
+    existing.impressions += r.impressions;
+    existing.clicks += r.clicks;
+    existing.cost += r.cost;
+    existing.conversions += r.conversions;
+
+    const ga4Row = ga4Map.get(`${r.date}__${r.campaign}__${r.adGroup}`);
+    if (ga4Row && r.clicks > 0) {
+      existing.ga4Weight += r.clicks;
+      existing.bounceRateWeighted += ga4Row.bounceRate * r.clicks;
+      existing.pagesPerSessionWeighted += ga4Row.pagesPerSession * r.clicks;
+      existing.avgSessionDurationWeighted += ga4Row.avgSessionDurationSec * r.clicks;
+    }
+    map.set(key, existing);
+  }
+
+  return Array.from(map.values())
+    .map((c) => ({
+      name: c.name,
+      impressions: c.impressions,
+      clicks: c.clicks,
+      cost: c.cost,
+      conversions: c.conversions,
+      ctr: safeDiv(c.clicks, c.impressions),
+      cpc: safeDiv(c.cost, c.clicks),
+      cr: safeDiv(c.conversions, c.clicks),
+      cpl: safeDiv(c.cost, c.conversions),
+      bounceRate: c.ga4Weight > 0 ? c.bounceRateWeighted / c.ga4Weight : null,
+      pagesPerSession: c.ga4Weight > 0 ? c.pagesPerSessionWeighted / c.ga4Weight : null,
+      avgSessionDurationSec: c.ga4Weight > 0 ? c.avgSessionDurationWeighted / c.ga4Weight : null,
+    }))
+    .sort((a, b) => b.cost - a.cost);
 }
 
 export function dailyTrend(rows: JoinedRow[]) {

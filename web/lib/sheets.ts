@@ -7,6 +7,9 @@ import {
   KeywordDailyRow,
   AdCreativeDailyRow,
   SearchTermDailyRow,
+  DeviceDailyRow,
+  GeoDailyRow,
+  Ga4AdGroupDailyRow,
 } from "./types";
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -142,5 +145,49 @@ export async function fetchSearchTermsDaily(): Promise<SearchTermDailyRow[]> {
       clicks: num(r[5]),
       cost: num(r[6]),
       conversions: num(r[7]),
+    }));
+}
+
+export async function fetchDeviceDaily(): Promise<DeviceDailyRow[]> {
+  const rows = await readTab("device_daily!A:G");
+  return rows
+    .filter((r) => r[0] && r[1] && r[2])
+    .map((r) => ({
+      date: r[0],
+      campaign: r[1],
+      device: r[2],
+      impressions: num(r[3]),
+      clicks: num(r[4]),
+      cost: num(r[5]),
+      conversions: num(r[6]),
+    }));
+}
+
+export async function fetchGeoDaily(): Promise<GeoDailyRow[]> {
+  const rows = await readTab("geo_daily!A:G");
+  return rows
+    .filter((r) => r[0] && r[1] && r[2])
+    .map((r) => ({
+      date: r[0],
+      campaign: r[1],
+      country: r[2],
+      impressions: num(r[3]),
+      clicks: num(r[4]),
+      cost: num(r[5]),
+      conversions: num(r[6]),
+    }));
+}
+
+export async function fetchGa4AdGroupDaily(): Promise<Ga4AdGroupDailyRow[]> {
+  const rows = await readTab("ga4_ad_group_daily!A:F");
+  return rows
+    .filter((r) => r[0] && r[1] && r[2])
+    .map((r) => ({
+      date: r[0],
+      campaign: r[1],
+      adGroup: r[2],
+      bounceRate: num(r[3]),
+      pagesPerSession: num(r[4]),
+      avgSessionDurationSec: num(r[5]),
     }));
 }

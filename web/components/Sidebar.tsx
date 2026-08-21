@@ -4,6 +4,8 @@ const links = [
   { href: "/", label: "Dashboard" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/search-terms", label: "Search Terms" },
+  { href: "/devices", label: "Devices" },
+  { href: "/geo", label: "Geo" },
 ];
 
 export function Sidebar() {

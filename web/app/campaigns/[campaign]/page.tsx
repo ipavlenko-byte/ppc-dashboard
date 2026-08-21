@@ -1,5 +1,5 @@
 import { getDashboardData } from "@/lib/dataSource";
-import { summarizeGeneric, grandTotalGeneric, applyDateFilter } from "@/lib/metrics";
+import { summarizeAdGroupsWithGa4, grandTotalGeneric, applyDateFilter } from "@/lib/metrics";
 import { resolveDateFilter } from "@/lib/dateFilter";
 import { MetricsTable } from "@/components/MetricsTable";
 import { DateRangePicker } from "@/components/DateRangePicker";
@@ -19,12 +19,16 @@ export default async function CampaignAdGroupsPage({
   const sp = await searchParams;
   const filter = resolveDateFilter(sp);
 
-  const { adGroups } = await getDashboardData();
+  const { adGroups, ga4AdGroups } = await getDashboardData();
   const rows = applyDateFilter(
     adGroups.filter((r) => r.campaign === campaign),
     filter
   );
-  const summaries = summarizeGeneric(rows, (r) => r.adGroup);
+  const ga4Rows = applyDateFilter(
+    ga4AdGroups.filter((r) => r.campaign === campaign),
+    filter
+  );
+  const summaries = summarizeAdGroupsWithGa4(rows, ga4Rows);
   const total = grandTotalGeneric(summaries);
 
   const linkQuery =

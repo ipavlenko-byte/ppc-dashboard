@@ -6,6 +6,9 @@ import {
   KeywordDailyRow,
   AdCreativeDailyRow,
   SearchTermDailyRow,
+  DeviceDailyRow,
+  GeoDailyRow,
+  Ga4AdGroupDailyRow,
 } from "./types";
 
 const CAMPAIGNS = [
@@ -50,13 +53,20 @@ export function generateMockAds(days = 30): AdsDailyRow[] {
 
 export function generateMockGa4(ads: AdsDailyRow[]): Ga4DailyRow[] {
   const rand = seedRandom(7);
-  return ads.map((r) => ({
-    date: r.date,
-    campaign: r.campaign,
-    bounceRate: Math.round((0.2 + rand() * 0.3) * 100) / 100,
-    pagesPerSession: Math.round((1.2 + rand() * 1.2) * 100) / 100,
-    avgSessionDurationSec: Math.round(40 + rand() * 140),
-  }));
+  return ads.map((r) => {
+    // Sellvia_DG_* специально сделана "проблемной" — высокий отказ, для проверки подсветки аномалий.
+    const isProblemCampaign = r.campaign.includes("Sellvia_DG");
+    const bounceRate = isProblemCampaign
+      ? Math.round((0.72 + rand() * 0.15) * 100) / 100
+      : Math.round((0.2 + rand() * 0.3) * 100) / 100;
+    return {
+      date: r.date,
+      campaign: r.campaign,
+      bounceRate,
+      pagesPerSession: Math.round((1.2 + rand() * 1.2) * 100) / 100,
+      avgSessionDurationSec: Math.round(40 + rand() * 140),
+    };
+  });
 }
 
 export function generateMockQualifiedLeads(ads: AdsDailyRow[]): QualifiedLeadsRow[] {
@@ -184,6 +194,75 @@ export function generateMockAdCreatives(adGroups: AdGroupDailyRow[]): AdCreative
     );
   }
   return rows;
+}
+
+const DEVICES = ["MOBILE", "DESKTOP", "TABLET"];
+const DEVICE_SHARE = [0.55, 0.4, 0.05];
+const COUNTRIES = ["United States", "Canada", "United Kingdom", "Australia", "Singapore"];
+const COUNTRY_SHARE = [0.5, 0.15, 0.15, 0.12, 0.08];
+
+export function generateMockDevices(ads: AdsDailyRow[]): DeviceDailyRow[] {
+  const rand = seedRandom(23);
+  const rows: DeviceDailyRow[] = [];
+  for (const r of ads) {
+    const impParts = splitByShare(r.impressions, DEVICE_SHARE, rand);
+    const clkParts = splitByShare(r.clicks, DEVICE_SHARE, rand);
+    const costParts = splitByShare(r.cost, DEVICE_SHARE, rand);
+    const convParts = splitByShare(r.conversions, DEVICE_SHARE, rand);
+    DEVICES.forEach((device, i) => {
+      rows.push({
+        date: r.date,
+        campaign: r.campaign,
+        device,
+        impressions: impParts[i],
+        clicks: clkParts[i],
+        cost: costParts[i],
+        conversions: convParts[i],
+      });
+    });
+  }
+  return rows;
+}
+
+export function generateMockGeo(ads: AdsDailyRow[]): GeoDailyRow[] {
+  const rand = seedRandom(29);
+  const rows: GeoDailyRow[] = [];
+  for (const r of ads) {
+    const impParts = splitByShare(r.impressions, COUNTRY_SHARE, rand);
+    const clkParts = splitByShare(r.clicks, COUNTRY_SHARE, rand);
+    const costParts = splitByShare(r.cost, COUNTRY_SHARE, rand);
+    const convParts = splitByShare(r.conversions, COUNTRY_SHARE, rand);
+    COUNTRIES.forEach((country, i) => {
+      rows.push({
+        date: r.date,
+        campaign: r.campaign,
+        country,
+        impressions: impParts[i],
+        clicks: clkParts[i],
+        cost: costParts[i],
+        conversions: convParts[i],
+      });
+    });
+  }
+  return rows;
+}
+
+export function generateMockGa4AdGroups(adGroups: AdGroupDailyRow[]): Ga4AdGroupDailyRow[] {
+  const rand = seedRandom(31);
+  return adGroups.map((r) => ({
+    date: r.date,
+    campaign: r.campaign,
+    adGroup: r.adGroup,
+    bounceRate: Math.round((0.2 + rand() * 0.35) * 100) / 100,
+    pagesPerSession: Math.round((1.1 + rand() * 1.3) * 100) / 100,
+    avgSessionDurationSec: Math.round(35 + rand() * 150),
+  }));
+}
+
+function splitByShare(total: number, shares: number[], rand: () => number): number[] {
+  const jittered = shares.map((s) => s * (0.85 + rand() * 0.3));
+  const sum = jittered.reduce((a, b) => a + b, 0);
+  return jittered.map((s) => Math.round((s / sum) * total));
 }
 
 export function generateMockSearchTerms(adGroups: AdGroupDailyRow[]): SearchTermDailyRow[] {

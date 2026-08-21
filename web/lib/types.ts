@@ -51,6 +51,23 @@ export interface SearchTermDailyRow extends AdMetricsBase {
   searchTerm: string;
 }
 
+export interface DeviceDailyRow extends AdMetricsBase {
+  device: string;
+}
+
+export interface GeoDailyRow extends AdMetricsBase {
+  country: string;
+}
+
+export interface Ga4AdGroupDailyRow {
+  date: string;
+  campaign: string;
+  adGroup: string;
+  bounceRate: number;
+  pagesPerSession: number;
+  avgSessionDurationSec: number;
+}
+
 export interface JoinedRow {
   date: string;
   campaign: string;
