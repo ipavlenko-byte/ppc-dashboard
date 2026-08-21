@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -12,6 +15,20 @@ const links = [
 ];
 
 export function Sidebar() {
+  const searchParams = useSearchParams();
+
+  // Переносим выбранный период (пресет или диапазон дат) на все разделы —
+  // остальные параметры (campaign, minCost и т.п.) специфичны для конкретной
+  // страницы и не переносятся.
+  const dateQuery = new URLSearchParams();
+  if (searchParams.get("from") && searchParams.get("to")) {
+    dateQuery.set("from", searchParams.get("from")!);
+    dateQuery.set("to", searchParams.get("to")!);
+  } else if (searchParams.get("days")) {
+    dateQuery.set("days", searchParams.get("days")!);
+  }
+  const suffix = dateQuery.toString() ? `?${dateQuery.toString()}` : "";
+
   return (
     <aside className="w-52 shrink-0 border-r border-slate-200 bg-white px-4 py-5">
       <div className="mb-6 flex items-center gap-2">
@@ -27,7 +44,7 @@ export function Sidebar() {
         {links.map((l) => (
           <Link
             key={l.href}
-            href={l.href}
+            href={`${l.href}${suffix}`}
             className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
           >
             {l.label}
