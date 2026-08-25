@@ -76,6 +76,24 @@ export interface Ga4AdGroupDailyRow {
   avgSessionDurationSec: number;
 }
 
+export interface GscQueryDailyRow {
+  date: string;
+  query: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+export interface GscPageDailyRow {
+  date: string;
+  page: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
 export interface JoinedRow {
   date: string;
   campaign: string;

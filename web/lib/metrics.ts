@@ -410,6 +410,63 @@ export function summarizeAdGroupsWithGa4(
     .sort((a, b) => b.cost - a.cost);
 }
 
+interface SeoMetricsBase {
+  date: string;
+  clicks: number;
+  impressions: number;
+  position: number;
+}
+
+export interface SeoSummary {
+  name: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+// position — средневзвешенная по impressions, а не среднее из средних:
+// день с 10 показами не должен весить как день с 10 000.
+export function summarizeSeo<T extends SeoMetricsBase>(rows: T[], keyFn: (r: T) => string): SeoSummary[] {
+  interface Acc extends SeoSummary {
+    positionWeighted: number;
+  }
+  const map = new Map<string, Acc>();
+  for (const r of rows) {
+    const key = keyFn(r);
+    const existing = map.get(key) ?? { name: key, clicks: 0, impressions: 0, ctr: 0, position: 0, positionWeighted: 0 };
+    existing.clicks += r.clicks;
+    existing.impressions += r.impressions;
+    existing.positionWeighted += r.position * r.impressions;
+    map.set(key, existing);
+  }
+  return Array.from(map.values())
+    .map((c) => ({
+      name: c.name,
+      clicks: c.clicks,
+      impressions: c.impressions,
+      ctr: safeDiv(c.clicks, c.impressions),
+      position: c.impressions > 0 ? c.positionWeighted / c.impressions : 0,
+    }))
+    .sort((a, b) => b.clicks - a.clicks);
+}
+
+export function grandTotalSeo(summaries: SeoSummary[]): SeoSummary {
+  let positionWeighted = 0;
+  const total = summaries.reduce(
+    (acc, c) => {
+      acc.clicks += c.clicks;
+      acc.impressions += c.impressions;
+      positionWeighted += c.position * c.impressions;
+      return acc;
+    },
+    { name: "SUMMARY", clicks: 0, impressions: 0, ctr: 0, position: 0 }
+  );
+  total.ctr = safeDiv(total.clicks, total.impressions);
+  total.position = total.impressions > 0 ? positionWeighted / total.impressions : 0;
+  return total;
+}
+
 export function dailyTrend(rows: JoinedRow[]) {
   const map = new Map<
     string,

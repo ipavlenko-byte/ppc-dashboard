@@ -10,6 +10,8 @@ import {
   GeoDailyRow,
   Ga4AdGroupDailyRow,
   LandingPageDailyRow,
+  GscQueryDailyRow,
+  GscPageDailyRow,
 } from "./types";
 
 const CAMPAIGNS = [
@@ -296,6 +298,84 @@ export function generateMockLandingPages(ads: AdsDailyRow[]): LandingPageDailyRo
         clicks: clkParts[i],
         cost: costParts[i],
         conversions: convParts[i],
+      });
+    });
+  }
+  return rows;
+}
+
+const GSC_QUERIES = [
+  { text: "game localization services", basePosition: 4.2, baseCtr: 0.09 },
+  { text: "allcorrect games", basePosition: 1.3, baseCtr: 0.35 },
+  { text: "video game translation company", basePosition: 6.8, baseCtr: 0.05 },
+  { text: "outsource game art", basePosition: 8.5, baseCtr: 0.03 },
+  { text: "game qa testing outsourcing", basePosition: 5.4, baseCtr: 0.07 },
+  { text: "indie game localization", basePosition: 3.1, baseCtr: 0.11 },
+  { text: "mobile game translation service", basePosition: 9.2, baseCtr: 0.025 },
+  { text: "game dubbing studio", basePosition: 11.4, baseCtr: 0.018 },
+];
+
+const GSC_PAGES = [
+  "https://allcorrectgames.com/",
+  "https://allcorrectgames.com/localization/",
+  "https://allcorrectgames.com/art-outsourcing/",
+  "https://allcorrectgames.com/qa-testing/",
+  "https://allcorrectgames.com/blog/game-localization-guide/",
+];
+
+function generateMockDateRange(days: number): string[] {
+  const today = new Date();
+  const dates: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dates.push(toISODate(d));
+  }
+  return dates;
+}
+
+export function generateMockGscQueries(days = 30): GscQueryDailyRow[] {
+  const rand = seedRandom(41);
+  const rows: GscQueryDailyRow[] = [];
+  for (const date of generateMockDateRange(days)) {
+    for (const q of GSC_QUERIES) {
+      const jitter = 0.75 + rand() * 0.5;
+      const impressions = Math.round((80 + rand() * 400) * jitter);
+      const ctr = Math.max(0.005, q.baseCtr * (0.8 + rand() * 0.4));
+      const clicks = Math.round(impressions * ctr);
+      const position = Math.max(1, q.basePosition + (rand() - 0.5) * 1.5);
+      rows.push({
+        date,
+        query: q.text,
+        clicks,
+        impressions,
+        ctr: impressions > 0 ? clicks / impressions : 0,
+        position: Math.round(position * 10) / 10,
+      });
+    }
+  }
+  return rows;
+}
+
+export function generateMockGscPages(days = 30): GscPageDailyRow[] {
+  const rand = seedRandom(43);
+  const rows: GscPageDailyRow[] = [];
+  const shares = GSC_PAGES.map(() => 0.2 + rand() * 0.6);
+  for (const date of generateMockDateRange(days)) {
+    const totalImpressions = Math.round(1200 + rand() * 2000);
+    const impParts = splitByShare(totalImpressions, shares, rand);
+    GSC_PAGES.forEach((page, i) => {
+      const impressions = impParts[i];
+      const ctr = Math.max(0.005, 0.03 + rand() * 0.08);
+      const clicks = Math.round(impressions * ctr);
+      const position = Math.max(1, 2 + i * 2.5 + (rand() - 0.5) * 1.5);
+      rows.push({
+        date,
+        page,
+        clicks,
+        impressions,
+        ctr: impressions > 0 ? clicks / impressions : 0,
+        position: Math.round(position * 10) / 10,
       });
     });
   }

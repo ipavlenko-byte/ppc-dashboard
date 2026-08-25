@@ -10,6 +10,7 @@ const links = [
   { href: "/devices", label: "Devices" },
   { href: "/geo", label: "Geo" },
   { href: "/landing-pages", label: "Landing Pages" },
+  { href: "/seo", label: "SEO" },
   { href: "/wasted-spend", label: "Wasted Spend" },
   { href: "/budget-pacing", label: "Budget Pacing" },
 ];

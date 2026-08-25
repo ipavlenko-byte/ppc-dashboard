@@ -11,6 +11,8 @@ import {
   GeoDailyRow,
   Ga4AdGroupDailyRow,
   LandingPageDailyRow,
+  GscQueryDailyRow,
+  GscPageDailyRow,
 } from "./types";
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -49,6 +51,8 @@ const TAB_RANGES = {
   geoDaily: "geo_daily!A:G",
   ga4AdGroupDaily: "ga4_ad_group_daily!A:F",
   landingPagesDaily: "landing_pages_daily!A:G",
+  gscQueryDaily: "gsc_query_daily!A:F",
+  gscPageDaily: "gsc_page_daily!A:F",
 } as const;
 
 type TabKey = keyof typeof TAB_RANGES;
@@ -124,6 +128,8 @@ export interface AllSheetData {
   geoDaily: GeoDailyRow[];
   ga4AdGroupDaily: Ga4AdGroupDailyRow[];
   landingPagesDaily: LandingPageDailyRow[];
+  gscQueryDaily: GscQueryDailyRow[];
+  gscPageDaily: GscPageDailyRow[];
 }
 
 export async function fetchAllSheetData(): Promise<AllSheetData> {
@@ -261,6 +267,28 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         clicks: num(r[4]),
         cost: num(r[5]),
         conversions: num(r[6]),
+      })),
+
+    gscQueryDaily: tabs.gscQueryDaily
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        query: r[1],
+        clicks: num(r[2]),
+        impressions: num(r[3]),
+        ctr: num(r[4]),
+        position: num(r[5]),
+      })),
+
+    gscPageDaily: tabs.gscPageDaily
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        page: r[1],
+        clicks: num(r[2]),
+        impressions: num(r[3]),
+        ctr: num(r[4]),
+        position: num(r[5]),
       })),
   };
 }

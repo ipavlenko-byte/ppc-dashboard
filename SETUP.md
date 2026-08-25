@@ -38,6 +38,21 @@
 4. Настройте расписание, например ежедневно в 06:30.
 5. Гео определяется по числовому ID страны из Google Ads — в скрипте зашита таблица соответствий для основных стран из кампаний Sellvia (US/CAN/UK/AUS/SG и т.д.). Если в дашборде увидите `Unknown (id)` — допишите этот ID в `COUNTRY_NAMES` внутри скрипта.
 
+## 2d. SEO — органика из Google Search Console
+
+1. Зайдите на [search.google.com/search-console](https://search.google.com/search-console) под тем же Google-аккаунтом, под которым будете создавать Apps Script. Убедитесь, что у аккаунта есть доступ **Owner** или **Full user** к нужному свойству (сайту).
+2. Откройте свойство → **Настройки → Информация о свойстве** и скопируйте точный идентификатор:
+   - для свойства домена — вида `sc-domain:example.com`
+   - для свойства по URL-префиксу — вида `https://example.com/` (со слэшем на конце)
+3. На [script.google.com](https://script.google.com):
+   - Если ведёте GSC-синк в том же проекте, что и GA4 (`sync-ga4.gs`) — просто добавьте новый файл (`+` → Script) и вставьте туда [apps-script/sync-gsc.gs](apps-script/sync-gsc.gs). Манифест `appsscript.json` уже обновлён (добавлен scope `webmasters.readonly`) — замените его содержимым [apps-script/appsscript.json](apps-script/appsscript.json), если ещё не обновляли.
+   - Если делаете отдельный проект — создайте новый (**New project**), вставьте `sync-gsc.gs` в `Code.gs`, и замените манифест так же.
+4. В `sync-gsc.gs` замените `SHEET_ID` и `GSC_SITE_URL` (значение из шага 2).
+5. Запустите функцию `syncGsc` вручную — Google запросит переавторизацию (новый scope — доступ к Search Console). Если аккаунт не видит нужное свойство — добавьте его в Search Console (Settings → Users and permissions).
+6. Проверьте, что строки появились в `gsc_query_daily` и `gsc_page_daily`.
+7. Добавьте time-driven trigger на `syncGsc`, ежедневно (после `syncGa4`, например 06:45).
+8. Данные в Search Console обычно "дозревают" 2-3 дня — это нормально, не баг.
+
 ## 3. Синхронизация GA4 (кампании + группы объявлений)
 
 1. Зайдите на [script.google.com](https://script.google.com) → **New project**.
