@@ -47,7 +47,7 @@
 3. На [script.google.com](https://script.google.com):
    - Если ведёте GSC-синк в том же проекте, что и GA4 (`sync-ga4.gs`) — просто добавьте новый файл (`+` → Script) и вставьте туда [apps-script/sync-gsc.gs](apps-script/sync-gsc.gs). Манифест `appsscript.json` уже обновлён (добавлен scope `webmasters.readonly`) — замените его содержимым [apps-script/appsscript.json](apps-script/appsscript.json), если ещё не обновляли.
    - Если делаете отдельный проект — создайте новый (**New project**), вставьте `sync-gsc.gs` в `Code.gs`, и замените манифест так же.
-4. В `sync-gsc.gs` замените `SHEET_ID` и `GSC_SITE_URL` (значение из шага 2).
+4. В `sync-gsc.gs` замените `GSC_SHEET_ID` и `GSC_SITE_URL` (значение из шага 2).
 5. Запустите функцию `syncGsc` вручную — Google запросит переавторизацию (новый scope — доступ к Search Console). Если аккаунт не видит нужное свойство — добавьте его в Search Console (Settings → Users and permissions).
 6. Проверьте, что строки появились в `gsc_query_daily` и `gsc_page_daily`.
 7. Добавьте time-driven trigger на `syncGsc`, ежедневно (после `syncGa4`, например 06:45).
