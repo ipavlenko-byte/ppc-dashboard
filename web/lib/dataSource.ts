@@ -14,6 +14,7 @@ import {
   GscPageDailyRow,
   GscCountryDailyRow,
   GscDeviceDailyRow,
+  GscQueryCountryDailyRow,
   JoinedRow,
 } from "./types";
 import {
@@ -32,6 +33,7 @@ import {
   generateMockGscPages,
   generateMockGscCountries,
   generateMockGscDevices,
+  generateMockGscQueryCountry,
 } from "./mockData";
 import { fetchAllSheetData, sheetsConfigured } from "./sheets";
 import { joinRows } from "./metrics";
@@ -50,6 +52,7 @@ export interface DashboardData {
   gscPages: GscPageDailyRow[];
   gscCountries: GscCountryDailyRow[];
   gscDevices: GscDeviceDailyRow[];
+  gscQueryCountry: GscQueryCountryDailyRow[];
   source: "sheets" | "mock";
 }
 
@@ -70,6 +73,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       gscPages: data.gscPageDaily,
       gscCountries: data.gscCountryDaily,
       gscDevices: data.gscDeviceDaily,
+      gscQueryCountry: data.gscQueryCountryDaily,
       source: "sheets",
     };
   }
@@ -89,6 +93,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const gscPages = generateMockGscPages(30);
   const gscCountries = generateMockGscCountries(30);
   const gscDevices = generateMockGscDevices(30);
+  const gscQueryCountry = generateMockGscQueryCountry(30);
 
   return {
     rows: joinRows(ads, ga4, leads),
@@ -104,6 +109,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     gscPages,
     gscCountries,
     gscDevices,
+    gscQueryCountry,
     source: "mock",
   };
 }

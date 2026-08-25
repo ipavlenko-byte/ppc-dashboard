@@ -99,6 +99,26 @@ function syncGsc() {
     (code) => GSC_COUNTRY_NAMES[code] || `Unknown (${code})`
   );
   gscSyncByDimension(spreadsheet, "device", "gsc_device_daily", ["date", "device", "clicks", "impressions", "ctr", "position"]);
+  gscSyncQueryByCountry(spreadsheet);
+}
+
+// Отдельно от gscSyncByDimension: тут 3 измерения (date+query+country), а не 2,
+// и мапить код страны нужно на 3-й колонке (индекс 2), а не на 2-й (индекс 1).
+function gscSyncQueryByCountry(spreadsheet) {
+  const today = new Date();
+  const endDate = gscShiftDate(today, -1);
+  const startDate = gscShiftDate(today, -GSC_LOOKBACK_DAYS);
+
+  const rows = gscRunReport(startDate, endDate, ["date", "query", "country"]);
+  rows.forEach((r) => {
+    r[2] = GSC_COUNTRY_NAMES[r[2]] || `Unknown (${r[2]})`;
+  });
+  gscWriteReport(
+    spreadsheet,
+    "gsc_query_country_daily",
+    ["date", "query", "country", "clicks", "impressions", "ctr", "position"],
+    rows
+  );
 }
 
 function gscSyncByDimension(spreadsheet, dimension, tabName, header, mapKey) {
@@ -115,37 +135,56 @@ function gscSyncByDimension(spreadsheet, dimension, tabName, header, mapKey) {
   gscWriteReport(spreadsheet, tabName, header, rows);
 }
 
+const GSC_ROW_LIMIT = 25000;
+const GSC_MAX_PAGES = 10; // потолок на 250k строк за один синк одного отчёта — защита от таймаута Apps Script (6 минут)
+
+// Комбинированные отчёты (например date+query+country) могут отдавать заметно
+// больше строк, чем плоские — постранично тянем через startRow, пока не
+// получим меньше rowLimit строк (значит, это последняя страница).
 function gscRunReport(startDate, endDate, dimensions) {
-  const payload = {
-    startDate: gscFormatDate(startDate),
-    endDate: gscFormatDate(endDate),
-    dimensions,
-    rowLimit: 25000,
-  };
+  const allRows = [];
+  let startRow = 0;
 
-  const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(GSC_SITE_URL)}/searchAnalytics/query`;
-  const response = UrlFetchApp.fetch(url, {
-    method: "post",
-    contentType: "application/json",
-    headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true,
-  });
+  for (let page = 0; page < GSC_MAX_PAGES; page++) {
+    const payload = {
+      startDate: gscFormatDate(startDate),
+      endDate: gscFormatDate(endDate),
+      dimensions,
+      rowLimit: GSC_ROW_LIMIT,
+      startRow,
+    };
 
-  if (response.getResponseCode() !== 200) {
-    Logger.log(response.getContentText());
-    throw new Error(`GSC API error: ${response.getResponseCode()}`);
+    const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(GSC_SITE_URL)}/searchAnalytics/query`;
+    const response = UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    });
+
+    if (response.getResponseCode() !== 200) {
+      Logger.log(response.getContentText());
+      throw new Error(`GSC API error: ${response.getResponseCode()}`);
+    }
+
+    const data = JSON.parse(response.getContentText());
+    const rows = data.rows || [];
+    rows.forEach((r) => {
+      allRows.push([...r.keys, r.clicks, r.impressions, r.ctr, r.position]);
+    });
+
+    if (rows.length < GSC_ROW_LIMIT) break; // последняя страница
+
+    startRow += rows.length;
+    if (page === GSC_MAX_PAGES - 1) {
+      Logger.log(
+        `ВНИМАНИЕ: достигнут потолок пагинации (${GSC_MAX_PAGES} страниц) для dimensions=${dimensions.join(",")} — часть данных могла быть обрезана.`
+      );
+    }
   }
 
-  const data = JSON.parse(response.getContentText());
-  return (data.rows || []).map((r) => [
-    r.keys[0], // date, формат уже YYYY-MM-DD
-    r.keys[1], // query или page
-    r.clicks,
-    r.impressions,
-    r.ctr,
-    r.position,
-  ]);
+  return allRows;
 }
 
 function gscWriteReport(spreadsheet, tabName, header, rows) {

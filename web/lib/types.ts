@@ -112,6 +112,16 @@ export interface GscDeviceDailyRow {
   position: number;
 }
 
+export interface GscQueryCountryDailyRow {
+  date: string;
+  query: string;
+  country: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
 export interface JoinedRow {
   date: string;
   campaign: string;

@@ -14,6 +14,7 @@ import {
   GscPageDailyRow,
   GscCountryDailyRow,
   GscDeviceDailyRow,
+  GscQueryCountryDailyRow,
 } from "./types";
 
 const CAMPAIGNS = [
@@ -428,6 +429,33 @@ export function generateMockGscDevices(days = 30): GscDeviceDailyRow[] {
         position: Math.round(position * 10) / 10,
       });
     });
+  }
+  return rows;
+}
+
+export function generateMockGscQueryCountry(days = 30): GscQueryCountryDailyRow[] {
+  const rand = seedRandom(59);
+  const rows: GscQueryCountryDailyRow[] = [];
+  for (const date of generateMockDateRange(days)) {
+    for (const q of GSC_QUERIES) {
+      const qImpressions = Math.round((80 + rand() * 400) * (0.75 + rand() * 0.5));
+      const impParts = splitByShare(qImpressions, COUNTRY_SHARE, rand);
+      COUNTRIES.forEach((country, i) => {
+        const impressions = impParts[i];
+        const ctr = Math.max(0.005, q.baseCtr * (0.8 + rand() * 0.4));
+        const clicks = Math.round(impressions * ctr);
+        const position = Math.max(1, q.basePosition + (rand() - 0.5) * 2);
+        rows.push({
+          date,
+          query: q.text,
+          country,
+          clicks,
+          impressions,
+          ctr: impressions > 0 ? clicks / impressions : 0,
+          position: Math.round(position * 10) / 10,
+        });
+      });
+    }
   }
   return rows;
 }

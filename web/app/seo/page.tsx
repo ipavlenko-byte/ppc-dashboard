@@ -14,6 +14,7 @@ import { SeoTable } from "@/components/SeoTable";
 import { SeoTrendChart } from "@/components/SeoTrendChart";
 import { KpiTile } from "@/components/KpiTile";
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { CountryFilter } from "@/components/CountryFilter";
 import { fmtInt, fmtPct, fmtDecimal } from "@/lib/format";
 
 export const revalidate = 300;
@@ -21,31 +22,36 @@ export const revalidate = 300;
 export default async function SeoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string; country?: string }>;
 }) {
   const sp = await searchParams;
   const filter = resolveDateFilter(sp);
+  const country = sp.country ?? "";
 
-  const { gscQueries, gscPages, source } = await getDashboardData();
+  const { gscQueries, gscPages, gscCountries, gscQueryCountry, source } = await getDashboardData();
 
-  const filteredQueries = applyDateFilter(gscQueries, filter);
+  const countries = Array.from(new Set(gscCountries.map((r) => r.country))).sort();
+
+  // Без выбранной страны — дешёвый плоский отчёт по запросам (как раньше).
+  // С выбранной страной — комбинированный date+query+country отчёт, отфильтрованный по ней.
+  const queryRows = country ? gscQueryCountry.filter((r) => r.country === country) : gscQueries;
+
+  const filteredQueries = applyDateFilter(queryRows, filter);
   const filteredPages = applyDateFilter(gscPages, filter);
 
   const queries = summarizeSeo(filteredQueries, (r) => r.query);
   const pages = summarizeSeo(filteredPages, (r) => r.page);
-  // Общие KPI считаем по queries — сумма показов/кликов по запросам и по страницам
-  // совпадает (это одни и те же клики GSC, просто в двух разрезах).
   const total = grandTotalSeo(queries);
 
   // Сравнение с предыдущим периодом той же длины — как в Campaigns.
   // Если в этом диапазоне вообще нет строк (например, данные ещё не накопились
   // так глубоко), previousTotal остаётся null — дельты на тайлах не показываем,
   // а не выводим обманчивые "-100%" от нулевой базы.
-  const bounds = getPeriodBounds(gscQueries, filter);
+  const bounds = getPeriodBounds(queryRows, filter);
   const previousTotal = bounds
     ? (() => {
         const prev = getPreviousPeriodBounds(bounds);
-        const prevRows = filterByRange(gscQueries, prev.from, prev.to);
+        const prevRows = filterByRange(queryRows, prev.from, prev.to);
         const prevSummary = grandTotalSeo(summarizeSeo(prevRows, (r) => r.query));
         return prevSummary.impressions > 0 ? prevSummary : null;
       })()
@@ -63,7 +69,8 @@ export default async function SeoPage({
               Демо-данные (Sheet не подключён)
             </span>
           )}
-          <DateRangePicker basePath="/seo" current={filter} />
+          <CountryFilter countries={countries} current={country} filter={filter} basePath="/seo" />
+          <DateRangePicker basePath="/seo" current={filter} extraParams={country ? { country } : undefined} />
         </div>
       </div>
 
@@ -94,12 +101,14 @@ export default async function SeoPage({
       <SeoTrendChart data={trend} />
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-slate-600">Топ запросов</h2>
+        <h2 className="text-sm font-semibold text-slate-600">
+          Топ запросов{country ? ` — ${country}` : ""}
+        </h2>
         <SeoTable rows={queries} total={total} nameLabel="Запрос" />
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-slate-600">Топ страниц</h2>
+        <h2 className="text-sm font-semibold text-slate-600">Топ страниц (по всем странам)</h2>
         <SeoTable rows={pages} total={grandTotalSeo(pages)} nameLabel="Страница" />
       </div>
     </div>
