@@ -467,6 +467,17 @@ export function grandTotalSeo(summaries: SeoSummary[]): SeoSummary {
   return total;
 }
 
+export function seoDailyTrend<T extends SeoMetricsBase>(rows: T[]) {
+  const map = new Map<string, { date: string; clicks: number; impressions: number }>();
+  for (const r of rows) {
+    const existing = map.get(r.date) ?? { date: r.date, clicks: 0, impressions: 0 };
+    existing.clicks += r.clicks;
+    existing.impressions += r.impressions;
+    map.set(r.date, existing);
+  }
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export function dailyTrend(rows: JoinedRow[]) {
   const map = new Map<
     string,

@@ -13,6 +13,8 @@ import {
   LandingPageDailyRow,
   GscQueryDailyRow,
   GscPageDailyRow,
+  GscCountryDailyRow,
+  GscDeviceDailyRow,
 } from "./types";
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -53,6 +55,8 @@ const TAB_RANGES = {
   landingPagesDaily: "landing_pages_daily!A:G",
   gscQueryDaily: "gsc_query_daily!A:F",
   gscPageDaily: "gsc_page_daily!A:F",
+  gscCountryDaily: "gsc_country_daily!A:F",
+  gscDeviceDaily: "gsc_device_daily!A:F",
 } as const;
 
 type TabKey = keyof typeof TAB_RANGES;
@@ -130,6 +134,8 @@ export interface AllSheetData {
   landingPagesDaily: LandingPageDailyRow[];
   gscQueryDaily: GscQueryDailyRow[];
   gscPageDaily: GscPageDailyRow[];
+  gscCountryDaily: GscCountryDailyRow[];
+  gscDeviceDaily: GscDeviceDailyRow[];
 }
 
 export async function fetchAllSheetData(): Promise<AllSheetData> {
@@ -285,6 +291,28 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
       .map((r) => ({
         date: r[0],
         page: r[1],
+        clicks: num(r[2]),
+        impressions: num(r[3]),
+        ctr: num(r[4]),
+        position: num(r[5]),
+      })),
+
+    gscCountryDaily: tabs.gscCountryDaily
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        country: r[1],
+        clicks: num(r[2]),
+        impressions: num(r[3]),
+        ctr: num(r[4]),
+        position: num(r[5]),
+      })),
+
+    gscDeviceDaily: tabs.gscDeviceDaily
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        device: r[1],
         clicks: num(r[2]),
         impressions: num(r[3]),
         ctr: num(r[4]),

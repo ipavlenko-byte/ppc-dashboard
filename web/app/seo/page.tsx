@@ -1,7 +1,17 @@
 import { getDashboardData } from "@/lib/dataSource";
-import { summarizeSeo, grandTotalSeo, applyDateFilter } from "@/lib/metrics";
+import {
+  summarizeSeo,
+  grandTotalSeo,
+  applyDateFilter,
+  filterByRange,
+  getPeriodBounds,
+  getPreviousPeriodBounds,
+  seoDailyTrend,
+} from "@/lib/metrics";
 import { resolveDateFilter } from "@/lib/dateFilter";
+import { fmtDeltaPct } from "@/lib/trends";
 import { SeoTable } from "@/components/SeoTable";
+import { SeoTrendChart } from "@/components/SeoTrendChart";
 import { KpiTile } from "@/components/KpiTile";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { fmtInt, fmtPct, fmtDecimal } from "@/lib/format";
@@ -27,6 +37,22 @@ export default async function SeoPage({
   // совпадает (это одни и те же клики GSC, просто в двух разрезах).
   const total = grandTotalSeo(queries);
 
+  // Сравнение с предыдущим периодом той же длины — как в Campaigns.
+  // Если в этом диапазоне вообще нет строк (например, данные ещё не накопились
+  // так глубоко), previousTotal остаётся null — дельты на тайлах не показываем,
+  // а не выводим обманчивые "-100%" от нулевой базы.
+  const bounds = getPeriodBounds(gscQueries, filter);
+  const previousTotal = bounds
+    ? (() => {
+        const prev = getPreviousPeriodBounds(bounds);
+        const prevRows = filterByRange(gscQueries, prev.from, prev.to);
+        const prevSummary = grandTotalSeo(summarizeSeo(prevRows, (r) => r.query));
+        return prevSummary.impressions > 0 ? prevSummary : null;
+      })()
+    : null;
+
+  const trend = seoDailyTrend(filteredQueries);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -42,11 +68,30 @@ export default async function SeoPage({
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiTile label="Показы" value={fmtInt(total.impressions)} />
-        <KpiTile label="Клики" value={fmtInt(total.clicks)} />
-        <KpiTile label="CTR" value={fmtPct(total.ctr)} />
-        <KpiTile label="Средняя позиция" value={fmtDecimal(total.position)} />
+        <KpiTile
+          label="Показы"
+          value={fmtInt(total.impressions)}
+          subValue={previousTotal ? fmtDeltaPct(total.impressions, previousTotal.impressions) : undefined}
+        />
+        <KpiTile
+          label="Клики"
+          value={fmtInt(total.clicks)}
+          subValue={previousTotal ? fmtDeltaPct(total.clicks, previousTotal.clicks) : undefined}
+        />
+        <KpiTile
+          label="CTR"
+          value={fmtPct(total.ctr)}
+          subValue={previousTotal ? fmtDeltaPct(total.ctr, previousTotal.ctr) : undefined}
+        />
+        <KpiTile
+          label="Средняя позиция"
+          value={fmtDecimal(total.position)}
+          // Для позиции "рост" — это уменьшение числа, поэтому дельту считаем в обратную сторону.
+          subValue={previousTotal ? fmtDeltaPct(previousTotal.position, total.position) : undefined}
+        />
       </div>
+
+      <SeoTrendChart data={trend} />
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-slate-600">Топ запросов</h2>

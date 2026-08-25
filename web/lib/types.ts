@@ -94,6 +94,24 @@ export interface GscPageDailyRow {
   position: number;
 }
 
+export interface GscCountryDailyRow {
+  date: string;
+  country: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+export interface GscDeviceDailyRow {
+  date: string;
+  device: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
 export interface JoinedRow {
   date: string;
   campaign: string;

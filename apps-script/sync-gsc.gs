@@ -31,18 +31,67 @@ const GSC_SITE_URL = "https://allcorrectgames.com/";
 const GSC_LOOKBACK_DAYS = 3; // GSC данные "дозревают" 2-3 дня — перезаписываем последние дни
 const GSC_MAX_HISTORY_DAYS = 240;
 
+// GSC отдаёт страну как ISO-3166-1 alpha-3 код в нижнем регистре (не путать с
+// двухбуквенными кодами в остальных частях дашборда). Список — основные рынки
+// сайта allcorrectgames.com; если увидите "Unknown (код)" в дашборде — допишите
+// нужный код сюда (найти можно поиском "iso 3166-1 alpha-3 <страна>").
+const GSC_COUNTRY_NAMES = {
+  usa: "United States",
+  gbr: "United Kingdom",
+  can: "Canada",
+  aus: "Australia",
+  sgp: "Singapore",
+  deu: "Germany",
+  fra: "France",
+  esp: "Spain",
+  ita: "Italy",
+  nld: "Netherlands",
+  swe: "Sweden",
+  nor: "Norway",
+  dnk: "Denmark",
+  fin: "Finland",
+  pol: "Poland",
+  nzl: "New Zealand",
+  jpn: "Japan",
+  kor: "South Korea",
+  ind: "India",
+  bra: "Brazil",
+  chn: "China",
+  hkg: "Hong Kong",
+  cze: "Czechia",
+  bel: "Belgium",
+  twn: "Taiwan",
+  isr: "Israel",
+  irl: "Ireland",
+  che: "Switzerland",
+  aut: "Austria",
+};
+
 function syncGsc() {
   const spreadsheet = SpreadsheetApp.openById(GSC_SHEET_ID);
   gscSyncByDimension(spreadsheet, "query", "gsc_query_daily", ["date", "query", "clicks", "impressions", "ctr", "position"]);
   gscSyncByDimension(spreadsheet, "page", "gsc_page_daily", ["date", "page", "clicks", "impressions", "ctr", "position"]);
+  gscSyncByDimension(
+    spreadsheet,
+    "country",
+    "gsc_country_daily",
+    ["date", "country", "clicks", "impressions", "ctr", "position"],
+    (code) => GSC_COUNTRY_NAMES[code] || `Unknown (${code})`
+  );
+  gscSyncByDimension(spreadsheet, "device", "gsc_device_daily", ["date", "device", "clicks", "impressions", "ctr", "position"]);
 }
 
-function gscSyncByDimension(spreadsheet, dimension, tabName, header) {
+function gscSyncByDimension(spreadsheet, dimension, tabName, header, mapKey) {
   const today = new Date();
   const endDate = gscShiftDate(today, -1); // GSC не отдаёт "сегодня"
   const startDate = gscShiftDate(today, -GSC_LOOKBACK_DAYS);
 
   const rows = gscRunReport(startDate, endDate, ["date", dimension]);
+  if (mapKey) {
+    rows.forEach((r) => {
+      r[1] = mapKey(r[1]);
+    });
+  }
   gscWriteReport(spreadsheet, tabName, header, rows);
 }
 

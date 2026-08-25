@@ -3,16 +3,21 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-const links = [
+const adsLinks = [
   { href: "/", label: "Dashboard" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/search-terms", label: "Search Terms" },
   { href: "/devices", label: "Devices" },
   { href: "/geo", label: "Geo" },
   { href: "/landing-pages", label: "Landing Pages" },
-  { href: "/seo", label: "SEO" },
   { href: "/wasted-spend", label: "Wasted Spend" },
   { href: "/budget-pacing", label: "Budget Pacing" },
+];
+
+const seoLinks = [
+  { href: "/seo", label: "Обзор" },
+  { href: "/seo/geo", label: "География" },
+  { href: "/seo/devices", label: "Устройства" },
 ];
 
 export function Sidebar() {
@@ -41,8 +46,26 @@ export function Sidebar() {
         />
         <span className="text-sm font-semibold text-slate-500">PPC Dashboard</span>
       </div>
+      <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        Реклама
+      </div>
       <nav className="flex flex-col gap-1">
-        {links.map((l) => (
+        {adsLinks.map((l) => (
+          <Link
+            key={l.href}
+            href={`${l.href}${suffix}`}
+            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        SEO
+      </div>
+      <nav className="flex flex-col gap-1">
+        {seoLinks.map((l) => (
           <Link
             key={l.href}
             href={`${l.href}${suffix}`}

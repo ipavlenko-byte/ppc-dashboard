@@ -12,6 +12,8 @@ import {
   LandingPageDailyRow,
   GscQueryDailyRow,
   GscPageDailyRow,
+  GscCountryDailyRow,
+  GscDeviceDailyRow,
 } from "./types";
 
 const CAMPAIGNS = [
@@ -372,6 +374,54 @@ export function generateMockGscPages(days = 30): GscPageDailyRow[] {
       rows.push({
         date,
         page,
+        clicks,
+        impressions,
+        ctr: impressions > 0 ? clicks / impressions : 0,
+        position: Math.round(position * 10) / 10,
+      });
+    });
+  }
+  return rows;
+}
+
+export function generateMockGscCountries(days = 30): GscCountryDailyRow[] {
+  const rand = seedRandom(47);
+  const rows: GscCountryDailyRow[] = [];
+  for (const date of generateMockDateRange(days)) {
+    const totalImpressions = Math.round(1200 + rand() * 2000);
+    const impParts = splitByShare(totalImpressions, COUNTRY_SHARE, rand);
+    COUNTRIES.forEach((country, i) => {
+      const impressions = impParts[i];
+      const ctr = Math.max(0.005, 0.03 + rand() * 0.08);
+      const clicks = Math.round(impressions * ctr);
+      const position = Math.max(1, 3 + i * 1.8 + (rand() - 0.5) * 1.5);
+      rows.push({
+        date,
+        country,
+        clicks,
+        impressions,
+        ctr: impressions > 0 ? clicks / impressions : 0,
+        position: Math.round(position * 10) / 10,
+      });
+    });
+  }
+  return rows;
+}
+
+export function generateMockGscDevices(days = 30): GscDeviceDailyRow[] {
+  const rand = seedRandom(53);
+  const rows: GscDeviceDailyRow[] = [];
+  for (const date of generateMockDateRange(days)) {
+    const totalImpressions = Math.round(1200 + rand() * 2000);
+    const impParts = splitByShare(totalImpressions, DEVICE_SHARE, rand);
+    DEVICES.forEach((device, i) => {
+      const impressions = impParts[i];
+      const ctr = Math.max(0.005, 0.03 + rand() * 0.08);
+      const clicks = Math.round(impressions * ctr);
+      const position = Math.max(1, 4 + i * 1.2 + (rand() - 0.5) * 1.5);
+      rows.push({
+        date,
+        device,
         clicks,
         impressions,
         ctr: impressions > 0 ? clicks / impressions : 0,
