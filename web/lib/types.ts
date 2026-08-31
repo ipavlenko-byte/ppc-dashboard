@@ -122,6 +122,31 @@ export interface GscQueryCountryDailyRow {
   position: number;
 }
 
+export interface Ga4TrafficMonthlyRow {
+  yearMonth: string; // YYYY-MM
+  bucket: string; // Direct / Search: Google / Search: Other / Ads: Google / Ads: Other / Websites / AI / Social Networks / Other
+  users: number;
+}
+
+export interface Ga4TrafficSummaryMonthlyRow {
+  yearMonth: string;
+  totalUsers: number;
+  bounceRate: number; // 0-1
+}
+
+export interface FunnelMonthlyRow {
+  month: string; // YYYY-MM
+  users: number;
+  clients: number;
+}
+
+export interface FunnelLeadsMonthlyRow {
+  month: string; // YYYY-MM
+  source: string; // Google CPC / Organic / Direct / Referral / AI / Other
+  leads: number;
+  qualifiedLeads: number;
+}
+
 export interface JoinedRow {
   date: string;
   campaign: string;

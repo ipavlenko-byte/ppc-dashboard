@@ -15,6 +15,10 @@ import {
   GscCountryDailyRow,
   GscDeviceDailyRow,
   GscQueryCountryDailyRow,
+  Ga4TrafficMonthlyRow,
+  Ga4TrafficSummaryMonthlyRow,
+  FunnelMonthlyRow,
+  FunnelLeadsMonthlyRow,
 } from "./types";
 
 const CAMPAIGNS = [
@@ -455,6 +459,79 @@ export function generateMockGscQueryCountry(days = 30): GscQueryCountryDailyRow[
           position: Math.round(position * 10) / 10,
         });
       });
+    }
+  }
+  return rows;
+}
+
+function generateMockYearMonths(n: number): string[] {
+  const months: string[] = [];
+  const today = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return months;
+}
+
+const TRAFFIC_BUCKET_SHARE: [string, number][] = [
+  ["Direct", 0.2],
+  ["Search: Google", 0.28],
+  ["Search: Other", 0.04],
+  ["Ads: Google", 0.18],
+  ["Ads: Other", 0.03],
+  ["Websites", 0.12],
+  ["AI", 0.06],
+  ["Social Networks", 0.07],
+  ["Other", 0.02],
+];
+
+export function generateMockGa4Traffic(months = 12): Ga4TrafficMonthlyRow[] {
+  const rand = seedRandom(61);
+  const rows: Ga4TrafficMonthlyRow[] = [];
+  for (const yearMonth of generateMockYearMonths(months)) {
+    const totalUsers = Math.round(6000 + rand() * 4000);
+    const shares = TRAFFIC_BUCKET_SHARE.map(([, s]) => s * (0.85 + rand() * 0.3));
+    const sum = shares.reduce((a, b) => a + b, 0);
+    TRAFFIC_BUCKET_SHARE.forEach(([bucket], i) => {
+      rows.push({ yearMonth, bucket, users: Math.round((shares[i] / sum) * totalUsers) });
+    });
+  }
+  return rows;
+}
+
+export function generateMockGa4TrafficSummary(rows: Ga4TrafficMonthlyRow[]): Ga4TrafficSummaryMonthlyRow[] {
+  const rand = seedRandom(67);
+  const months = Array.from(new Set(rows.map((r) => r.yearMonth)));
+  return months.map((yearMonth) => {
+    const totalUsers = rows.filter((r) => r.yearMonth === yearMonth).reduce((s, r) => s + r.users, 0);
+    return {
+      yearMonth,
+      totalUsers,
+      bounceRate: Math.round((0.35 + rand() * 0.2) * 100) / 100,
+    };
+  });
+}
+
+const FUNNEL_SOURCES = ["Google CPC", "Organic", "Direct", "Referral", "AI", "Other"];
+
+export function generateMockFunnelMonthly(months = 20): FunnelMonthlyRow[] {
+  const rand = seedRandom(71);
+  return generateMockYearMonths(months).map((month) => {
+    const users = Math.round(2500 + rand() * 3000);
+    const clients = Math.round(2 + rand() * 6);
+    return { month, users, clients };
+  });
+}
+
+export function generateMockFunnelLeadsMonthly(months = 20): FunnelLeadsMonthlyRow[] {
+  const rand = seedRandom(73);
+  const rows: FunnelLeadsMonthlyRow[] = [];
+  for (const month of generateMockYearMonths(months)) {
+    for (const source of FUNNEL_SOURCES) {
+      const leads = Math.round(3 + rand() * 20);
+      const qualifiedLeads = Math.round(leads * (0.2 + rand() * 0.4));
+      rows.push({ month, source, leads, qualifiedLeads });
     }
   }
   return rows;

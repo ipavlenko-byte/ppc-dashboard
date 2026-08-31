@@ -15,6 +15,10 @@ import {
   GscCountryDailyRow,
   GscDeviceDailyRow,
   GscQueryCountryDailyRow,
+  Ga4TrafficMonthlyRow,
+  Ga4TrafficSummaryMonthlyRow,
+  FunnelMonthlyRow,
+  FunnelLeadsMonthlyRow,
   JoinedRow,
 } from "./types";
 import {
@@ -34,6 +38,10 @@ import {
   generateMockGscCountries,
   generateMockGscDevices,
   generateMockGscQueryCountry,
+  generateMockGa4Traffic,
+  generateMockGa4TrafficSummary,
+  generateMockFunnelMonthly,
+  generateMockFunnelLeadsMonthly,
 } from "./mockData";
 import { fetchAllSheetData, sheetsConfigured } from "./sheets";
 import { joinRows } from "./metrics";
@@ -53,6 +61,10 @@ export interface DashboardData {
   gscCountries: GscCountryDailyRow[];
   gscDevices: GscDeviceDailyRow[];
   gscQueryCountry: GscQueryCountryDailyRow[];
+  ga4Traffic: Ga4TrafficMonthlyRow[];
+  ga4TrafficSummary: Ga4TrafficSummaryMonthlyRow[];
+  funnelMonthly: FunnelMonthlyRow[];
+  funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
   source: "sheets" | "mock";
 }
 
@@ -74,6 +86,10 @@ export async function getDashboardData(): Promise<DashboardData> {
       gscCountries: data.gscCountryDaily,
       gscDevices: data.gscDeviceDaily,
       gscQueryCountry: data.gscQueryCountryDaily,
+      ga4Traffic: data.ga4TrafficMonthly,
+      ga4TrafficSummary: data.ga4TrafficSummaryMonthly,
+      funnelMonthly: data.funnelMonthly,
+      funnelLeadsMonthly: data.funnelLeadsMonthly,
       source: "sheets",
     };
   }
@@ -94,6 +110,10 @@ export async function getDashboardData(): Promise<DashboardData> {
   const gscCountries = generateMockGscCountries(30);
   const gscDevices = generateMockGscDevices(30);
   const gscQueryCountry = generateMockGscQueryCountry(30);
+  const ga4Traffic = generateMockGa4Traffic(12);
+  const ga4TrafficSummary = generateMockGa4TrafficSummary(ga4Traffic);
+  const funnelMonthly = generateMockFunnelMonthly(20);
+  const funnelLeadsMonthly = generateMockFunnelLeadsMonthly(20);
 
   return {
     rows: joinRows(ads, ga4, leads),
@@ -110,6 +130,10 @@ export async function getDashboardData(): Promise<DashboardData> {
     gscCountries,
     gscDevices,
     gscQueryCountry,
+    ga4Traffic,
+    ga4TrafficSummary,
+    funnelMonthly,
+    funnelLeadsMonthly,
     source: "mock",
   };
 }

@@ -20,6 +20,12 @@ const seoLinks = [
   { href: "/seo/devices", label: "Устройства" },
 ];
 
+const reportsLinks = [
+  { href: "/reports/traffic", label: "Traffic" },
+  { href: "/reports/funnel", label: "Воронка" },
+  { href: "/reports/ads-monthly", label: "Google Ads" },
+];
+
 export function Sidebar() {
   const searchParams = useSearchParams();
 
@@ -69,6 +75,21 @@ export function Sidebar() {
           <Link
             key={l.href}
             href={`${l.href}${suffix}`}
+            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        Отчёты
+      </div>
+      <nav className="flex flex-col gap-1">
+        {reportsLinks.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
             className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
           >
             {l.label}

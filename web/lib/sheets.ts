@@ -16,6 +16,10 @@ import {
   GscCountryDailyRow,
   GscDeviceDailyRow,
   GscQueryCountryDailyRow,
+  Ga4TrafficMonthlyRow,
+  Ga4TrafficSummaryMonthlyRow,
+  FunnelMonthlyRow,
+  FunnelLeadsMonthlyRow,
 } from "./types";
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -59,6 +63,10 @@ const TAB_RANGES = {
   gscCountryDaily: "gsc_country_daily!A:F",
   gscDeviceDaily: "gsc_device_daily!A:F",
   gscQueryCountryDaily: "gsc_query_country_daily!A:G",
+  ga4TrafficMonthly: "ga4_traffic_monthly!A:C",
+  ga4TrafficSummaryMonthly: "ga4_traffic_summary_monthly!A:C",
+  funnelMonthly: "funnel_monthly!A:C",
+  funnelLeadsMonthly: "funnel_leads_monthly!A:D",
 } as const;
 
 type TabKey = keyof typeof TAB_RANGES;
@@ -139,6 +147,10 @@ export interface AllSheetData {
   gscCountryDaily: GscCountryDailyRow[];
   gscDeviceDaily: GscDeviceDailyRow[];
   gscQueryCountryDaily: GscQueryCountryDailyRow[];
+  ga4TrafficMonthly: Ga4TrafficMonthlyRow[];
+  ga4TrafficSummaryMonthly: Ga4TrafficSummaryMonthlyRow[];
+  funnelMonthly: FunnelMonthlyRow[];
+  funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
 }
 
 export async function fetchAllSheetData(): Promise<AllSheetData> {
@@ -332,6 +344,39 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         impressions: num(r[4]),
         ctr: num(r[5]),
         position: num(r[6]),
+      })),
+
+    ga4TrafficMonthly: tabs.ga4TrafficMonthly
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        yearMonth: r[0],
+        bucket: r[1],
+        users: num(r[2]),
+      })),
+
+    ga4TrafficSummaryMonthly: tabs.ga4TrafficSummaryMonthly
+      .filter((r) => r[0])
+      .map((r) => ({
+        yearMonth: r[0],
+        totalUsers: num(r[1]),
+        bounceRate: num(r[2]),
+      })),
+
+    funnelMonthly: tabs.funnelMonthly
+      .filter((r) => r[0])
+      .map((r) => ({
+        month: r[0],
+        users: num(r[1]),
+        clients: num(r[2]),
+      })),
+
+    funnelLeadsMonthly: tabs.funnelLeadsMonthly
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        month: r[0],
+        source: r[1],
+        leads: num(r[2]),
+        qualifiedLeads: num(r[3]),
       })),
   };
 }
