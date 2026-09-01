@@ -12,6 +12,18 @@ function fmtCr(v: number | null) {
   return fmtOrDash(v, (n) => `${fmtDecimal(n)}%`);
 }
 
+// Первая колонка и шапка закреплены (sticky) — у каждой ячейки в них свой
+// непрозрачный фон, иначе при скролле сквозь них просвечивают соседние строки/колонки.
+const HEAD_CELL = "sticky top-0 z-20 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500";
+const FIRST_COL_HEAD = `${HEAD_CELL} sticky left-0 z-30 text-left`;
+
+// Три уровня визуальной иерархии строк: главные метрики (Users/Leads/...) —
+// самые заметные; разбивка по источникам — приглушённая и мельче; CR% —
+// компактные пояснительные строки между ними.
+const mainRowFirstCol = (bg: string) => `sticky left-0 z-10 ${bg} px-4 py-2.5 font-semibold text-slate-900`;
+const sourceRowFirstCol = "sticky left-0 z-10 bg-white px-4 py-1.5 pl-7 text-slate-500";
+const crRowFirstCol = "sticky left-0 z-10 bg-white px-4 py-1.5 pl-7 text-xs italic text-slate-400";
+
 export default async function FunnelReportPage() {
   const { funnelMonthly, funnelLeadsMonthly, source } = await getDashboardData();
   const summaries = summarizeFunnelByMonth(funnelMonthly, funnelLeadsMonthly);
@@ -65,96 +77,96 @@ export default async function FunnelReportPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
+          <div className="max-h-[75vh] overflow-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+            <table className="w-full border-separate border-spacing-0 text-sm tabular-nums">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">
-                  <th className="px-4 py-3">Метрика</th>
+                <tr>
+                  <th className={`${FIRST_COL_HEAD} min-w-[180px]`}>Метрика</th>
                   {months.map((m) => (
-                    <th key={m} className="px-4 py-3 text-right">
+                    <th key={m} className={`${HEAD_CELL} min-w-[84px] text-right`}>
                       {m}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-slate-100 bg-slate-50 font-semibold text-slate-900">
-                  <td className="px-4 py-2.5">Users</td>
+                <tr className="border-b border-slate-100 bg-slate-100">
+                  <td className={mainRowFirstCol("bg-slate-100")}>Users</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2.5 text-right">
+                    <td key={s.month} className="px-4 py-2.5 text-right font-semibold text-slate-900">
                       {fmtInt(s.users)}
                     </td>
                   ))}
                 </tr>
-                <tr className="border-b border-slate-100 text-slate-500">
-                  <td className="px-4 py-2 pl-6">CR1 (leads/users)</td>
+                <tr className="border-b border-slate-100">
+                  <td className={crRowFirstCol}>CR1 = leads / users</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2 text-right">
+                    <td key={s.month} className="px-4 py-1.5 text-right text-xs italic text-slate-400">
                       {fmtCr(s.cr1)}
                     </td>
                   ))}
                 </tr>
 
-                <tr className="border-b border-slate-100 bg-slate-50 font-semibold text-slate-900">
-                  <td className="px-4 py-2.5">Leads</td>
+                <tr className="border-b border-slate-100 bg-slate-100">
+                  <td className={mainRowFirstCol("bg-slate-100")}>Leads</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2.5 text-right">
+                    <td key={s.month} className="px-4 py-2.5 text-right font-semibold text-slate-900">
                       {fmtInt(s.totalLeads)}
                     </td>
                   ))}
                 </tr>
                 {sources.map((src) => (
-                  <tr key={`leads-${src}`} className="border-b border-slate-100 text-slate-500">
-                    <td className="px-4 py-2 pl-6">{src}</td>
+                  <tr key={`leads-${src}`} className="border-b border-slate-50">
+                    <td className={sourceRowFirstCol}>{src}</td>
                     {months.map((m) => (
-                      <td key={m} className="px-4 py-2 text-right">
+                      <td key={m} className="px-4 py-1.5 text-right text-slate-500">
                         {fmtInt(bySourceMap(m, src, "leads"))}
                       </td>
                     ))}
                   </tr>
                 ))}
 
-                <tr className="border-b border-slate-100 text-slate-500">
-                  <td className="px-4 py-2 pl-6">CR2 (qual./leads)</td>
+                <tr className="border-b border-slate-100">
+                  <td className={crRowFirstCol}>CR2 = qualified / leads</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2 text-right">
+                    <td key={s.month} className="px-4 py-1.5 text-right text-xs italic text-slate-400">
                       {fmtCr(s.cr2)}
                     </td>
                   ))}
                 </tr>
 
-                <tr className="border-b border-slate-100 bg-slate-50 font-semibold text-slate-900">
-                  <td className="px-4 py-2.5">Qualified leads</td>
+                <tr className="border-b border-slate-100 bg-slate-100">
+                  <td className={mainRowFirstCol("bg-slate-100")}>Qualified leads</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2.5 text-right">
+                    <td key={s.month} className="px-4 py-2.5 text-right font-semibold text-slate-900">
                       {fmtInt(s.totalQualifiedLeads)}
                     </td>
                   ))}
                 </tr>
                 {sources.map((src) => (
-                  <tr key={`qual-${src}`} className="border-b border-slate-100 text-slate-500">
-                    <td className="px-4 py-2 pl-6">{src}</td>
+                  <tr key={`qual-${src}`} className="border-b border-slate-50">
+                    <td className={sourceRowFirstCol}>{src}</td>
                     {months.map((m) => (
-                      <td key={m} className="px-4 py-2 text-right">
+                      <td key={m} className="px-4 py-1.5 text-right text-slate-500">
                         {fmtInt(bySourceMap(m, src, "qualifiedLeads"))}
                       </td>
                     ))}
                   </tr>
                 ))}
 
-                <tr className="border-b border-slate-100 text-slate-500">
-                  <td className="px-4 py-2 pl-6">CR3 (clients/qual.)</td>
+                <tr className="border-b border-slate-100">
+                  <td className={crRowFirstCol}>CR3 = clients / qualified</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2 text-right">
+                    <td key={s.month} className="px-4 py-1.5 text-right text-xs italic text-slate-400">
                       {fmtCr(s.cr3)}
                     </td>
                   ))}
                 </tr>
 
-                <tr className="bg-emerald-50 font-semibold text-slate-900">
-                  <td className="px-4 py-3">Clients</td>
+                <tr className="bg-emerald-50">
+                  <td className={mainRowFirstCol("bg-emerald-50")}>Clients</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-3 text-right">
+                    <td key={s.month} className="px-4 py-3 text-right font-semibold text-slate-900">
                       {fmtInt(s.clients)}
                     </td>
                   ))}

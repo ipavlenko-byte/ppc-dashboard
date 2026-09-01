@@ -16,6 +16,13 @@ const BUCKET_ORDER = [
   "Other",
 ];
 
+// Первая колонка и шапка закреплены (sticky), поэтому у каждой ячейки в них
+// должен быть свой непрозрачный фон — иначе при скролле сквозь них будет
+// просвечивать текст соседних колонок/строк.
+const HEAD_CELL = "sticky top-0 z-20 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500";
+const FIRST_COL_HEAD = `${HEAD_CELL} sticky left-0 z-30 text-left`;
+const FIRST_COL_BODY = "sticky left-0 z-10 bg-white px-4 py-2.5 font-medium text-slate-800";
+
 export default async function TrafficReportPage() {
   const { ga4Traffic, ga4TrafficSummary, source } = await getDashboardData();
 
@@ -50,13 +57,13 @@ export default async function TrafficReportPage() {
           Нет данных — запустите syncTrafficByChannel в sync-ga4.gs (см. SETUP.md)
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="max-h-[75vh] overflow-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+          <table className="w-full border-separate border-spacing-0 text-sm tabular-nums">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">
-                <th className="px-4 py-3">Канал</th>
+              <tr>
+                <th className={`${FIRST_COL_HEAD} min-w-[160px]`}>Канал</th>
                 {months.map((m) => (
-                  <th key={m} className="px-4 py-3 text-right">
+                  <th key={m} className={`${HEAD_CELL} min-w-[92px] text-right`}>
                     {m}
                   </th>
                 ))}
@@ -65,7 +72,7 @@ export default async function TrafficReportPage() {
             <tbody>
               {BUCKET_ORDER.map((bucket) => (
                 <tr key={bucket} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-2.5 font-medium text-slate-800">{bucket}</td>
+                  <td className={FIRST_COL_BODY}>{bucket}</td>
                   {months.map((m) => (
                     <td key={m} className="px-4 py-2.5 text-right text-slate-700">
                       {fmtInt(usersByBucketMonth.get(`${bucket}__${m}`) ?? 0)}
@@ -74,7 +81,7 @@ export default async function TrafficReportPage() {
                 </tr>
               ))}
               <tr className="border-b border-slate-100 bg-emerald-50 font-semibold text-slate-900">
-                <td className="px-4 py-3">Всего пользователей</td>
+                <td className={`${FIRST_COL_BODY} bg-emerald-50 py-3`}>Всего пользователей</td>
                 {months.map((m) => (
                   <td key={m} className="px-4 py-3 text-right">
                     {fmtInt(summaryByMonth.get(m)?.totalUsers ?? 0)}
@@ -82,7 +89,7 @@ export default async function TrafficReportPage() {
                 ))}
               </tr>
               <tr className="font-semibold text-slate-900">
-                <td className="px-4 py-3">Bounce rate</td>
+                <td className={`${FIRST_COL_BODY} py-3`}>Bounce rate</td>
                 {months.map((m) => {
                   const br = summaryByMonth.get(m)?.bounceRate;
                   return (
