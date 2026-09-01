@@ -110,6 +110,48 @@ npm run dev
 3. В Environment Variables добавьте `SHEET_ID` и `GOOGLE_SERVICE_ACCOUNT_JSON` (то же, что в `.env.local`).
 4. Deploy.
 
+## 7. LinkedIn Ads (авто-синк через Vercel Cron)
+
+В отличие от Google Ads/GA4/GSC (авторизация "в один клик" через Apps Script), у LinkedIn нет бесплатного self-hosted способа — нужен настоящий OAuth 2.0. Синк живёт прямо в дашборде (Vercel Cron дёргает раз в день внутренний API-роут), и это первая часть дашборда, где сервис-аккаунту нужны **права на запись** в Sheet (до сих пор — только чтение).
+
+**7.1 Выдать сервис-аккаунту право на запись**
+
+Откройте Google Sheet → **Share** → найдите email сервис-аккаунта (тот же `xxx@xxx.iam.gserviceaccount.com` из шага 4) → поменяйте роль с **Viewer** на **Editor**.
+
+**7.2 Получить Client ID / Client Secret**
+
+В LinkedIn Developer App (developers.linkedin.com/apps → ваше приложение) → вкладка **Auth** → скопируйте **Client ID** и **Client Secret**.
+
+**7.3 Получить refresh token (один раз, вручную)**
+
+1. В том же письме об одобрении Advertising API была ссылка на **OAuth token generation tools** — откройте её и пройдите 3-legged OAuth под вашим LinkedIn-аккаунтом (тем, у кого есть доступ к Campaign Manager нужного рекламного аккаунта).
+2. В ответе должен быть `refresh_token` (не только `access_token`) — если инструмент его не показывает, потребуется сделать разовый ручной обмен кода на токен (Postman-коллекция была в том же письме) с запросом на офлайн-доступ — напишите, если дойдёте до этого шага, разберём вместе.
+3. Также запишите **Ad Account ID** — числовой ID вашего рекламного аккаунта в Campaign Manager (виден в URL страницы аккаунта).
+
+**7.4 Переменные окружения**
+
+В `web/.env.local` и в Vercel (Environment Variables) добавьте:
+
+```
+LINKEDIN_CLIENT_ID=<Client ID>
+LINKEDIN_CLIENT_SECRET=<Client Secret>
+LINKEDIN_REFRESH_TOKEN=<refresh token из шага 7.3>
+LINKEDIN_AD_ACCOUNT_ID=<числовой ID рекламного аккаунта>
+CRON_SECRET=<любая длинная случайная строка — секрет, защищающий /api/cron/sync-linkedin от посторонних запросов>
+```
+
+**7.5 Проверка**
+
+После деплоя на Vercel с этими переменными можно вызвать синк вручную, не дожидаясь cron (07:00 UTC):
+
+```bash
+curl -H "Authorization: Bearer <CRON_SECRET>" https://<ваш-домен>.vercel.app/api/cron/sync-linkedin
+```
+
+Ответ `{"ok":true,"written":N}` — значит сработало, в Sheet появилась вкладка `linkedin_ads_daily`. Если `{"ok":false,"error":"..."}` — пришлите текст ошибки, разберём (это первый реальный запуск против настоящего LinkedIn API, детали запроса могли потребовать подстройки).
+
+Раздел **LinkedIn Ads** появится в сайдбаре и покажет данные сразу после первого успешного запуска.
+
 ## Что дальше можно добавить
 
 - Другие каналы (FB, Pinterest) — по той же схеме: ещё одна вкладка в Sheet + свой синк-скрипт.

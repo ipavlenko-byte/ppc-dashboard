@@ -19,6 +19,7 @@ import {
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
+  LinkedInAdsDailyRow,
   JoinedRow,
 } from "./types";
 import {
@@ -42,6 +43,7 @@ import {
   generateMockGa4TrafficSummary,
   generateMockFunnelMonthly,
   generateMockFunnelLeadsMonthly,
+  generateMockLinkedInAds,
 } from "./mockData";
 import { fetchAllSheetData, sheetsConfigured } from "./sheets";
 import { joinRows } from "./metrics";
@@ -65,6 +67,7 @@ export interface DashboardData {
   ga4TrafficSummary: Ga4TrafficSummaryMonthlyRow[];
   funnelMonthly: FunnelMonthlyRow[];
   funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
+  linkedInAds: LinkedInAdsDailyRow[];
   source: "sheets" | "mock";
 }
 
@@ -90,6 +93,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       ga4TrafficSummary: data.ga4TrafficSummaryMonthly,
       funnelMonthly: data.funnelMonthly,
       funnelLeadsMonthly: data.funnelLeadsMonthly,
+      linkedInAds: data.linkedInAdsDaily,
       source: "sheets",
     };
   }
@@ -114,6 +118,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const ga4TrafficSummary = generateMockGa4TrafficSummary(ga4Traffic);
   const funnelMonthly = generateMockFunnelMonthly(20);
   const funnelLeadsMonthly = generateMockFunnelLeadsMonthly(20);
+  const linkedInAds = generateMockLinkedInAds(30);
 
   return {
     rows: joinRows(ads, ga4, leads),
@@ -134,6 +139,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     ga4TrafficSummary,
     funnelMonthly,
     funnelLeadsMonthly,
+    linkedInAds,
     source: "mock",
   };
 }

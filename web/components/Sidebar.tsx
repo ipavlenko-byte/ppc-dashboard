@@ -13,6 +13,7 @@ const adsLinks = [
   { href: "/landing-pages", label: "Landing Pages" },
   { href: "/wasted-spend", label: "Wasted Spend" },
   { href: "/budget-pacing", label: "Budget Pacing" },
+  { href: "/linkedin", label: "LinkedIn Ads" },
 ];
 
 const seoLinks = [

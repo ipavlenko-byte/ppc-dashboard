@@ -20,6 +20,7 @@ import {
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
+  LinkedInAdsDailyRow,
 } from "./types";
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -67,6 +68,7 @@ const TAB_RANGES = {
   ga4TrafficSummaryMonthly: "ga4_traffic_summary_monthly!A:C",
   funnelMonthly: "funnel_monthly!A:C",
   funnelLeadsMonthly: "funnel_leads_monthly!A:D",
+  linkedInAdsDaily: "linkedin_ads_daily!A:F",
 } as const;
 
 type TabKey = keyof typeof TAB_RANGES;
@@ -151,6 +153,7 @@ export interface AllSheetData {
   ga4TrafficSummaryMonthly: Ga4TrafficSummaryMonthlyRow[];
   funnelMonthly: FunnelMonthlyRow[];
   funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
+  linkedInAdsDaily: LinkedInAdsDailyRow[];
 }
 
 export async function fetchAllSheetData(): Promise<AllSheetData> {
@@ -377,6 +380,17 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         source: r[1],
         leads: num(r[2]),
         qualifiedLeads: num(r[3]),
+      })),
+
+    linkedInAdsDaily: tabs.linkedInAdsDaily
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        impressions: num(r[2]),
+        clicks: num(r[3]),
+        cost: num(r[4]),
+        conversions: num(r[5]),
       })),
   };
 }

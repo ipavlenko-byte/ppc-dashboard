@@ -19,6 +19,7 @@ import {
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
+  LinkedInAdsDailyRow,
 } from "./types";
 
 const CAMPAIGNS = [
@@ -532,6 +533,27 @@ export function generateMockFunnelLeadsMonthly(months = 20): FunnelLeadsMonthlyR
       const leads = Math.round(3 + rand() * 20);
       const qualifiedLeads = Math.round(leads * (0.2 + rand() * 0.4));
       rows.push({ month, source, leads, qualifiedLeads });
+    }
+  }
+  return rows;
+}
+
+const LINKEDIN_CAMPAIGNS = [
+  { name: "Allcorrect_ABM_GameDevs_US_EU", baseCost: 45, baseCtr: 0.007, baseCr: 0.12 },
+  { name: "Allcorrect_Sponsored_Content_Loc", baseCost: 30, baseCtr: 0.005, baseCr: 0.08 },
+];
+
+export function generateMockLinkedInAds(days = 30): LinkedInAdsDailyRow[] {
+  const rand = seedRandom(79);
+  const rows: LinkedInAdsDailyRow[] = [];
+  for (const date of generateMockDateRange(days)) {
+    for (const c of LINKEDIN_CAMPAIGNS) {
+      const jitter = 0.8 + rand() * 0.4;
+      const cost = Math.round(c.baseCost * jitter);
+      const impressions = Math.round((cost / (c.baseCtr * 4)) * jitter);
+      const clicks = Math.round(impressions * c.baseCtr * (0.9 + rand() * 0.2));
+      const conversions = Math.round(clicks * c.baseCr * (0.85 + rand() * 0.3));
+      rows.push({ date, campaign: c.name, impressions, clicks, cost, conversions });
     }
   }
   return rows;
