@@ -1,10 +1,12 @@
 import { upsertDailyRows } from "@/lib/linkedinSheetsWrite";
+import { HKD_PER_USD } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 // LinkedIn требует версионировать запросы к /rest/* через этот заголовок (формат YYYYMM).
-// Если API начнёт возвращать ошибку версии — обновить на более свежий месяц.
-const LINKEDIN_VERSION = "202409";
+// Версии "гаснут" примерно через год — если начнёт возвращать 426 NONEXISTENT_VERSION,
+// обновить на более свежий месяц.
+const LINKEDIN_VERSION = "202601";
 const LOOKBACK_DAYS = 3; // конверсии дозревают, перезаписываем последние дни
 const MAX_HISTORY_DAYS = 240;
 
@@ -20,6 +22,11 @@ interface AnalyticsRow {
 interface LinkedInCampaignElement {
   id: number;
   name: string;
+}
+
+interface LinkedInCampaignsPage {
+  elements: LinkedInCampaignElement[];
+  metadata?: { nextPageToken?: string };
 }
 
 interface LinkedInAnalyticsElement {
@@ -114,12 +121,21 @@ function dateParam(d: Date) {
 }
 
 async function fetchCampaignNames(accessToken: string, adAccountId: string): Promise<Map<string, string>> {
-  const url = `https://api.linkedin.com/rest/adAccounts/${adAccountId}/adCampaigns?q=search`;
-  const res = await linkedInGet<{ elements: LinkedInCampaignElement[] }>(url, accessToken);
   const map = new Map<string, string>();
-  for (const el of res.elements ?? []) {
-    // el.id — числовой campaign id, совпадает с последним сегментом campaign URN в analytics-отчёте
-    map.set(String(el.id), el.name);
+  // Аккаунт может держать сотни архивных кампаний — /adCampaigns отдаёт их
+  // курсорной пагинацией (metadata.nextPageToken), а не одной страницей.
+  let pageToken: string | undefined;
+  for (let page = 0; page < 20; page++) {
+    const url =
+      `https://api.linkedin.com/rest/adAccounts/${adAccountId}/adCampaigns?q=search` +
+      (pageToken ? `&pageToken=${pageToken}` : "");
+    const res = await linkedInGet<LinkedInCampaignsPage>(url, accessToken);
+    for (const el of res.elements ?? []) {
+      // el.id — числовой campaign id, совпадает с последним сегментом campaign URN в analytics-отчёте
+      map.set(String(el.id), el.name);
+    }
+    pageToken = res.metadata?.nextPageToken;
+    if (!pageToken) break;
   }
   return map;
 }
@@ -130,15 +146,24 @@ async function fetchAnalytics(
   from: Date,
   to: Date
 ): Promise<AnalyticsRow[]> {
+  // LinkedIn's Rest.li "reduced" query syntax wants the structural characters
+  // (parens/colons/commas) literal in the URL, not percent-encoded — wrapping
+  // this in encodeURIComponent() (as URLSearchParams would) breaks parsing and
+  // returns a generic 400. Only the URN's colons are escaped, matching what
+  // LinkedIn's own docs/examples show.
   const dateRange = `(start:${dateParam(from)},end:${dateParam(to)})`;
   const fields = "dateRange,pivotValues,impressions,clicks,costInLocalCurrency,externalWebsiteConversions";
   const url =
     `https://api.linkedin.com/rest/adAnalytics?q=analytics&pivot=CAMPAIGN&timeGranularity=DAILY` +
-    `&dateRange=${encodeURIComponent(dateRange)}` +
-    `&accounts=${encodeURIComponent(`List(urn:li:sponsoredAccount:${adAccountId})`)}` +
+    `&dateRange=${dateRange}` +
+    `&accounts=List(urn%3Ali%3AsponsoredAccount%3A${adAccountId})` +
     `&fields=${fields}`;
 
-  const res = await linkedInGet<{ elements: LinkedInAnalyticsElement[] }>(url, accessToken);
+  const [res, costToHkd] = await Promise.all([
+    linkedInGet<{ elements: LinkedInAnalyticsElement[] }>(url, accessToken),
+    costToHkdMultiplier(accessToken, adAccountId),
+  ]);
+
   return (res.elements ?? []).flatMap((el) => {
     const campaignUrn = el.pivotValues?.[0]; // "urn:li:sponsoredCampaign:12345"
     const campaignId = campaignUrn?.split(":").pop();
@@ -150,11 +175,27 @@ async function fetchAnalytics(
         campaignId,
         impressions: Number(el.impressions ?? 0),
         clicks: Number(el.clicks ?? 0),
-        cost: Number(el.costInLocalCurrency ?? 0),
+        cost: Number(el.costInLocalCurrency ?? 0) * costToHkd,
         conversions: Number(el.externalWebsiteConversions ?? 0),
       },
     ];
   });
+}
+
+// costInLocalCurrency приходит в валюте биллинга рекламного аккаунта (не всегда
+// та же, что у Google Ads) — весь остальной дашборд хранит cost в HKD
+// (fmtMoneyDual/fmtUsd везде считают вход за HKD), поэтому конвертируем на записи,
+// а не размазываем спецслучай по компонентам отображения.
+async function costToHkdMultiplier(accessToken: string, adAccountId: string): Promise<number> {
+  const res = await linkedInGet<{ currency?: string }>(
+    `https://api.linkedin.com/rest/adAccounts/${adAccountId}`,
+    accessToken
+  );
+  if (res.currency === "HKD") return 1;
+  if (res.currency === "USD") return HKD_PER_USD;
+  throw new Error(
+    `Неизвестная валюта рекламного аккаунта LinkedIn: ${res.currency}. Добавьте курс конвертации в costToHkdMultiplier.`
+  );
 }
 
 async function linkedInGet<T>(url: string, accessToken: string): Promise<T> {
