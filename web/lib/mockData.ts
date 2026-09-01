@@ -20,6 +20,9 @@ import {
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
   LinkedInAdsDailyRow,
+  LinkedInCampaignGroupRow,
+  LinkedInCreativeDailyRow,
+  LinkedInTargetingRow,
 } from "./types";
 
 const CAMPAIGNS = [
@@ -538,10 +541,31 @@ export function generateMockFunnelLeadsMonthly(months = 20): FunnelLeadsMonthlyR
   return rows;
 }
 
-const LINKEDIN_CAMPAIGNS = [
-  { name: "Allcorrect_ABM_GameDevs_US_EU", baseCost: 45, baseCtr: 0.007, baseCr: 0.12 },
-  { name: "Allcorrect_Sponsored_Content_Loc", baseCost: 30, baseCtr: 0.005, baseCr: 0.08 },
+const LINKEDIN_CAMPAIGN_GROUPS = [
+  { id: "g1", name: "Lead Generation 2026" },
+  { id: "g2", name: "Brand Awareness" },
 ];
+
+const LINKEDIN_CAMPAIGNS = [
+  { name: "Allcorrect_ABM_GameDevs_US_EU", group: "g1", baseCost: 45, baseCtr: 0.007, baseCr: 0.12 },
+  { name: "Allcorrect_Sponsored_Content_Loc", group: "g2", baseCost: 30, baseCtr: 0.005, baseCr: 0.08 },
+];
+
+const LINKEDIN_CREATIVES: Record<string, string[]> = {
+  Allcorrect_ABM_GameDevs_US_EU: ["Warhammer case study", "Localization guide"],
+  Allcorrect_Sponsored_Content_Loc: ["Art outsourcing carousel", ""],
+};
+
+const LINKEDIN_TARGETING: Record<string, { facetType: string; values: string[] }[]> = {
+  Allcorrect_ABM_GameDevs_US_EU: [
+    { facetType: "Индустрии", values: ["Computer Games", "Software"] },
+    { facetType: "Должности", values: ["Localization Project Manager", "Producer"] },
+  ],
+  Allcorrect_Sponsored_Content_Loc: [
+    { facetType: "Гео", values: ["United States", "Germany", "United Kingdom"] },
+    { facetType: "Размер компании", values: ["51-200", "201-500"] },
+  ],
+};
 
 export function generateMockLinkedInAds(days = 30): LinkedInAdsDailyRow[] {
   const rand = seedRandom(79);
@@ -553,7 +577,52 @@ export function generateMockLinkedInAds(days = 30): LinkedInAdsDailyRow[] {
       const impressions = Math.round((cost / (c.baseCtr * 4)) * jitter);
       const clicks = Math.round(impressions * c.baseCtr * (0.9 + rand() * 0.2));
       const conversions = Math.round(clicks * c.baseCr * (0.85 + rand() * 0.3));
-      rows.push({ date, campaign: c.name, impressions, clicks, cost, conversions });
+      const group = LINKEDIN_CAMPAIGN_GROUPS.find((g) => g.id === c.group)!;
+      rows.push({
+        date,
+        campaign: c.name,
+        campaignGroup: group.name,
+        impressions,
+        clicks,
+        cost,
+        conversions,
+      });
+    }
+  }
+  return rows;
+}
+
+export function generateMockLinkedInCampaignGroups(): LinkedInCampaignGroupRow[] {
+  return LINKEDIN_CAMPAIGN_GROUPS.map((g) => ({ id: g.id, name: g.name }));
+}
+
+export function generateMockLinkedInCreatives(days = 30): LinkedInCreativeDailyRow[] {
+  const rand = seedRandom(83);
+  const rows: LinkedInCreativeDailyRow[] = [];
+  for (const date of generateMockDateRange(days)) {
+    for (const c of LINKEDIN_CAMPAIGNS) {
+      const creatives = LINKEDIN_CREATIVES[c.name] ?? [];
+      creatives.forEach((rawName, i) => {
+        const creative = rawName || `Creative #${i + 1}`;
+        const jitter = 0.7 + rand() * 0.6;
+        const cost = Math.round((c.baseCost / creatives.length) * jitter);
+        const impressions = Math.round((cost / (c.baseCtr * 4)) * jitter);
+        const clicks = Math.round(impressions * c.baseCtr * (0.9 + rand() * 0.2));
+        const conversions = Math.round(clicks * c.baseCr * (0.85 + rand() * 0.3));
+        rows.push({ date, campaign: c.name, creative, impressions, clicks, cost, conversions });
+      });
+    }
+  }
+  return rows;
+}
+
+export function generateMockLinkedInTargeting(): LinkedInTargetingRow[] {
+  const rows: LinkedInTargetingRow[] = [];
+  for (const [campaign, groups] of Object.entries(LINKEDIN_TARGETING)) {
+    for (const g of groups) {
+      for (const value of g.values) {
+        rows.push({ campaign, facetType: g.facetType, value });
+      }
     }
   }
   return rows;

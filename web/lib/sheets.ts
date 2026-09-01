@@ -21,6 +21,9 @@ import {
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
   LinkedInAdsDailyRow,
+  LinkedInCampaignGroupRow,
+  LinkedInCreativeDailyRow,
+  LinkedInTargetingRow,
 } from "./types";
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -68,7 +71,10 @@ const TAB_RANGES = {
   ga4TrafficSummaryMonthly: "ga4_traffic_summary_monthly!A:C",
   funnelMonthly: "funnel_monthly!A:C",
   funnelLeadsMonthly: "funnel_leads_monthly!A:D",
-  linkedInAdsDaily: "linkedin_ads_daily!A:F",
+  linkedInAdsDaily: "linkedin_ads_daily!A:G",
+  linkedInCampaignGroups: "linkedin_campaign_groups!A:B",
+  linkedInCreativesDaily: "linkedin_creatives_daily!A:G",
+  linkedInTargeting: "linkedin_targeting!A:C",
 } as const;
 
 type TabKey = keyof typeof TAB_RANGES;
@@ -154,6 +160,9 @@ export interface AllSheetData {
   funnelMonthly: FunnelMonthlyRow[];
   funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
   linkedInAdsDaily: LinkedInAdsDailyRow[];
+  linkedInCampaignGroups: LinkedInCampaignGroupRow[];
+  linkedInCreativesDaily: LinkedInCreativeDailyRow[];
+  linkedInTargeting: LinkedInTargetingRow[];
 }
 
 export async function fetchAllSheetData(): Promise<AllSheetData> {
@@ -387,10 +396,38 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
       .map((r) => ({
         date: r[0],
         campaign: r[1],
-        impressions: num(r[2]),
-        clicks: num(r[3]),
-        cost: num(r[4]),
-        conversions: num(r[5]),
+        campaignGroup: r[2] ?? "",
+        impressions: num(r[3]),
+        clicks: num(r[4]),
+        cost: num(r[5]),
+        conversions: num(r[6]),
+      })),
+
+    linkedInCampaignGroups: tabs.linkedInCampaignGroups
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        id: r[0],
+        name: r[1],
+      })),
+
+    linkedInCreativesDaily: tabs.linkedInCreativesDaily
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        creative: r[2],
+        impressions: num(r[3]),
+        clicks: num(r[4]),
+        cost: num(r[5]),
+        conversions: num(r[6]),
+      })),
+
+    linkedInTargeting: tabs.linkedInTargeting
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        campaign: r[0],
+        facetType: r[1],
+        value: r[2],
       })),
   };
 }

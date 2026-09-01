@@ -20,6 +20,9 @@ import {
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
   LinkedInAdsDailyRow,
+  LinkedInCampaignGroupRow,
+  LinkedInCreativeDailyRow,
+  LinkedInTargetingRow,
   JoinedRow,
 } from "./types";
 import {
@@ -44,6 +47,9 @@ import {
   generateMockFunnelMonthly,
   generateMockFunnelLeadsMonthly,
   generateMockLinkedInAds,
+  generateMockLinkedInCampaignGroups,
+  generateMockLinkedInCreatives,
+  generateMockLinkedInTargeting,
 } from "./mockData";
 import { fetchAllSheetData, sheetsConfigured } from "./sheets";
 import { joinRows } from "./metrics";
@@ -68,6 +74,9 @@ export interface DashboardData {
   funnelMonthly: FunnelMonthlyRow[];
   funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
   linkedInAds: LinkedInAdsDailyRow[];
+  linkedInCampaignGroups: LinkedInCampaignGroupRow[];
+  linkedInCreatives: LinkedInCreativeDailyRow[];
+  linkedInTargeting: LinkedInTargetingRow[];
   source: "sheets" | "mock";
 }
 
@@ -94,6 +103,9 @@ export async function getDashboardData(): Promise<DashboardData> {
       funnelMonthly: data.funnelMonthly,
       funnelLeadsMonthly: data.funnelLeadsMonthly,
       linkedInAds: data.linkedInAdsDaily,
+      linkedInCampaignGroups: data.linkedInCampaignGroups,
+      linkedInCreatives: data.linkedInCreativesDaily,
+      linkedInTargeting: data.linkedInTargeting,
       source: "sheets",
     };
   }
@@ -119,6 +131,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   const funnelMonthly = generateMockFunnelMonthly(20);
   const funnelLeadsMonthly = generateMockFunnelLeadsMonthly(20);
   const linkedInAds = generateMockLinkedInAds(30);
+  const linkedInCampaignGroups = generateMockLinkedInCampaignGroups();
+  const linkedInCreatives = generateMockLinkedInCreatives(30);
+  const linkedInTargeting = generateMockLinkedInTargeting();
 
   return {
     rows: joinRows(ads, ga4, leads),
@@ -140,6 +155,9 @@ export async function getDashboardData(): Promise<DashboardData> {
     funnelMonthly,
     funnelLeadsMonthly,
     linkedInAds,
+    linkedInCampaignGroups,
+    linkedInCreatives,
+    linkedInTargeting,
     source: "mock",
   };
 }

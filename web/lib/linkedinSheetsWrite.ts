@@ -77,6 +77,34 @@ export async function upsertDailyRows(
   return { written: finalRows.length };
 }
 
+/**
+ * Полная перезапись вкладки-снэпшота (не дневных рядов) — для данных вроде
+ * campaign groups или таргетинга, где нет смысла в датированном дедупе, объём
+ * небольшой, и на каждый синк актуален только текущий срез.
+ */
+export async function writeFullReplace(tabName: string, header: string[], rows: (string | number)[][]) {
+  const sheets = getWriteSheetsClient();
+
+  await ensureSheetExists(tabName);
+  await ensureHeaderAndTextFormat(tabName, header);
+
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: SHEET_ID,
+    range: `${tabName}!A2:Z`,
+  });
+
+  if (rows.length > 0) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `${tabName}!A2`,
+      valueInputOption: "RAW",
+      requestBody: { values: rows },
+    });
+  }
+
+  return { written: rows.length };
+}
+
 async function readExistingRows(tabName: string): Promise<(string | number)[][]> {
   const sheets = getWriteSheetsClient();
   try {

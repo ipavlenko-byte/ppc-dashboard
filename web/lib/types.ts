@@ -34,9 +34,24 @@ export interface AdMetricsBase {
   conversions: number;
 }
 
-// LinkedIn Ads campaign-level daily metrics — совпадает по форме с AdMetricsBase
-// (date/campaign/impressions/clicks/cost/conversions), отдельного типа не нужно.
-export type LinkedInAdsDailyRow = AdMetricsBase;
+export interface LinkedInAdsDailyRow extends AdMetricsBase {
+  campaignGroup: string;
+}
+
+export interface LinkedInCampaignGroupRow {
+  id: string;
+  name: string;
+}
+
+export interface LinkedInCreativeDailyRow extends AdMetricsBase {
+  creative: string;
+}
+
+export interface LinkedInTargetingRow {
+  campaign: string;
+  facetType: string;
+  value: string;
+}
 
 export interface AdGroupDailyRow extends AdMetricsBase {
   adGroup: string;

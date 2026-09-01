@@ -3,21 +3,32 @@ import { summarizeGeneric, grandTotalGeneric, applyDateFilter } from "@/lib/metr
 import { resolveDateFilter } from "@/lib/dateFilter";
 import { MetricsTable } from "@/components/MetricsTable";
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { GroupFilter } from "@/components/GroupFilter";
 
 export const revalidate = 300;
 
 export default async function LinkedInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string; group?: string }>;
 }) {
   const sp = await searchParams;
   const filter = resolveDateFilter(sp);
+  const group = sp.group ?? "";
 
   const { linkedInAds, source } = await getDashboardData();
-  const filtered = applyDateFilter(linkedInAds, filter);
+
+  const groups = Array.from(new Set(linkedInAds.map((r) => r.campaignGroup).filter(Boolean))).sort();
+
+  const filtered = applyDateFilter(
+    group ? linkedInAds.filter((r) => r.campaignGroup === group) : linkedInAds,
+    filter
+  );
   const summaries = summarizeGeneric(filtered, (r) => r.campaign);
   const total = grandTotalGeneric(summaries);
+
+  const linkQuery =
+    filter.mode === "range" ? `from=${filter.from}&to=${filter.to}` : `days=${filter.days}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -29,7 +40,8 @@ export default async function LinkedInPage({
               Демо-данные (Sheet не подключён)
             </span>
           )}
-          <DateRangePicker basePath="/linkedin" current={filter} />
+          <GroupFilter groups={groups} current={group} filter={filter} basePath="/linkedin" />
+          <DateRangePicker basePath="/linkedin" current={filter} extraParams={group ? { group } : undefined} />
         </div>
       </div>
       {summaries.length === 0 && source === "sheets" ? (
@@ -37,7 +49,12 @@ export default async function LinkedInPage({
           Нет данных — синк ещё не запускался (см. SETUP.md, раздел LinkedIn Ads)
         </div>
       ) : (
-        <MetricsTable rows={summaries} total={total} nameLabel="Кампания" />
+        <MetricsTable
+          rows={summaries}
+          total={total}
+          nameLabel="Кампания"
+          linkFor={(campaign) => `/linkedin/${encodeURIComponent(campaign)}?${linkQuery}`}
+        />
       )}
     </div>
   );
