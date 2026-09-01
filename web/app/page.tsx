@@ -1,9 +1,20 @@
+import Link from "next/link";
+import {
+  grandTotal,
+  dailyTrend,
+  applyDateFilter,
+  summarizeByCampaign,
+  getPeriodBounds,
+  getPreviousPeriodBounds,
+  filterByRange,
+} from "@/lib/metrics";
 import { getDashboardData } from "@/lib/dataSource";
-import { grandTotal, dailyTrend, applyDateFilter } from "@/lib/metrics";
 import { resolveDateFilter } from "@/lib/dateFilter";
 import { KpiTile } from "@/components/KpiTile";
 import { TrendChart } from "@/components/TrendChart";
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { computeCampaignTrend, CampaignTrend } from "@/lib/trends";
+import { generateRecommendations } from "@/lib/recommendations";
 import { fmtInt, fmtMoney, fmtUsd, fmtPct, fmtDecimal, fmtDuration, fmtOrDash } from "@/lib/format";
 
 export const revalidate = 300; // пересчёт кэша раз в 5 минут
@@ -20,6 +31,28 @@ export default async function DashboardPage({
   const rows = applyDateFilter(allRows, filter);
   const total = grandTotal(rows);
   const trend = dailyTrend(rows);
+
+  const summaries = summarizeByCampaign(rows);
+  const campaignsWithConversions = summaries.filter((s) => s.conversions > 0);
+  const accountAvgCpl =
+    campaignsWithConversions.length > 0
+      ? campaignsWithConversions.reduce((sum, s) => sum + s.cpl, 0) / campaignsWithConversions.length
+      : 0;
+
+  const currentBounds = getPeriodBounds(allRows, filter);
+  const trendByCampaign = new Map<string, CampaignTrend | null>();
+  if (currentBounds) {
+    const prevBounds = getPreviousPeriodBounds(currentBounds);
+    const prevRows = filterByRange(allRows, prevBounds.from, prevBounds.to);
+    const prevByCampaign = new Map(summarizeByCampaign(prevRows).map((s) => [s.campaign, s]));
+    for (const s of summaries) {
+      trendByCampaign.set(s.campaign, computeCampaignTrend(s, prevByCampaign.get(s.campaign)));
+    }
+  }
+  const topRecommendations = generateRecommendations(summaries, accountAvgCpl, trendByCampaign).slice(0, 3);
+
+  const linkQuery =
+    filter.mode === "range" ? `from=${filter.from}&to=${filter.to}` : `days=${filter.days}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,6 +87,38 @@ export default async function DashboardPage({
       </div>
 
       <TrendChart data={trend} />
+
+      {topRecommendations.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-600">На что обратить внимание</h2>
+            <Link
+              href={`/recommendations?${linkQuery}`}
+              className="text-sm font-medium text-blue-600 hover:underline"
+            >
+              Все рекомендации →
+            </Link>
+          </div>
+          <div className="flex flex-col gap-2">
+            {topRecommendations.map((r, i) => (
+              <div
+                key={i}
+                className={
+                  r.severity === "critical"
+                    ? "rounded-lg border border-red-200 bg-red-50 px-4 py-2.5"
+                    : "rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5"
+                }
+              >
+                <div className="flex items-center gap-2 text-sm">
+                  <span aria-hidden>{r.severity === "critical" ? "🔴" : "🟡"}</span>
+                  <span className="font-semibold text-slate-500">{r.campaign}</span>
+                  <span className="text-slate-800">{r.title}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

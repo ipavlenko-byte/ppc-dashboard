@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 const adsLinks = [
   { href: "/", label: "Dashboard" },
   { href: "/campaigns", label: "Campaigns" },
+  { href: "/recommendations", label: "Рекомендации" },
   { href: "/search-terms", label: "Search Terms" },
   { href: "/devices", label: "Devices" },
   { href: "/geo", label: "Geo" },
