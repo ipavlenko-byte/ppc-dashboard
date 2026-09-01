@@ -23,6 +23,7 @@ import {
   LinkedInCampaignGroupRow,
   LinkedInCreativeDailyRow,
   LinkedInTargetingRow,
+  LinkedInAudienceRow,
   JoinedRow,
 } from "./types";
 import {
@@ -50,6 +51,7 @@ import {
   generateMockLinkedInCampaignGroups,
   generateMockLinkedInCreatives,
   generateMockLinkedInTargeting,
+  generateMockLinkedInAudience,
 } from "./mockData";
 import { fetchAllSheetData, sheetsConfigured } from "./sheets";
 import { joinRows } from "./metrics";
@@ -77,6 +79,7 @@ export interface DashboardData {
   linkedInCampaignGroups: LinkedInCampaignGroupRow[];
   linkedInCreatives: LinkedInCreativeDailyRow[];
   linkedInTargeting: LinkedInTargetingRow[];
+  linkedInAudience: LinkedInAudienceRow[];
   source: "sheets" | "mock";
 }
 
@@ -106,6 +109,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       linkedInCampaignGroups: data.linkedInCampaignGroups,
       linkedInCreatives: data.linkedInCreativesDaily,
       linkedInTargeting: data.linkedInTargeting,
+      linkedInAudience: data.linkedInAudience,
       source: "sheets",
     };
   }
@@ -134,6 +138,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const linkedInCampaignGroups = generateMockLinkedInCampaignGroups();
   const linkedInCreatives = generateMockLinkedInCreatives(30);
   const linkedInTargeting = generateMockLinkedInTargeting();
+  const linkedInAudience = generateMockLinkedInAudience();
 
   return {
     rows: joinRows(ads, ga4, leads),
@@ -158,6 +163,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     linkedInCampaignGroups,
     linkedInCreatives,
     linkedInTargeting,
+    linkedInAudience,
     source: "mock",
   };
 }

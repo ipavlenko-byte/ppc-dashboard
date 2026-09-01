@@ -143,6 +143,15 @@ export async function GET(request: Request) {
 
     const groupRows = Array.from(groups.entries()).map(([id, name]) => [id, name]);
     const targetingRows = await buildTargetingRows(accessToken, campaigns, campaignName);
+    const audienceRows = await buildAudienceRows(
+      accessToken,
+      adAccountId,
+      campaigns,
+      campaignName,
+      from,
+      to,
+      costToHkd
+    );
 
     const [adsResult, creativesResult] = await Promise.all([
       upsertDailyRows(
@@ -159,9 +168,14 @@ export async function GET(request: Request) {
       ),
     ]);
 
-    const [groupsResult, targetingResult] = await Promise.all([
+    const [groupsResult, targetingResult, audienceResult] = await Promise.all([
       writeFullReplace("linkedin_campaign_groups", ["id", "name"], groupRows),
       writeFullReplace("linkedin_targeting", ["campaign", "facetType", "value"], targetingRows),
+      writeFullReplace(
+        "linkedin_audience",
+        ["campaign", "dimension", "value", "impressions", "clicks", "cost"],
+        audienceRows
+      ),
     ]);
 
     return Response.json({
@@ -170,6 +184,7 @@ export async function GET(request: Request) {
       creatives: creativesResult.written,
       groups: groupsResult.written,
       targeting: targetingResult.written,
+      audience: audienceResult.written,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -346,6 +361,93 @@ async function buildTargetingRows(
     }
   }
   return rows;
+}
+
+const AUDIENCE_DIMENSIONS: { pivot: string; label: string }[] = [
+  { pivot: "MEMBER_JOB_TITLE", label: "Должности" },
+  { pivot: "MEMBER_SENIORITY", label: "Уровень должности" },
+  { pivot: "MEMBER_INDUSTRY", label: "Индустрия" },
+];
+
+interface RawAudiencePoint {
+  campaignId: string;
+  dimensionLabel: string;
+  urn: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+}
+
+// Фактический охват (кому реально показывались объявления) — не то же самое, что
+// таргетинг (кого мы выбрали таргетировать). Только для активных кампаний, тот же
+// набор, что и для таргетинга — иначе пришлось бы делать N кампаний × 3 запроса
+// на каждую архивную кампанию тоже.
+async function buildAudienceRows(
+  accessToken: string,
+  adAccountId: string,
+  campaigns: Map<string, LinkedInCampaign>,
+  campaignName: (id: string) => string,
+  from: Date,
+  to: Date,
+  costToHkd: number
+): Promise<(string | number)[][]> {
+  const activeCampaignIds = Array.from(campaigns.entries())
+    .filter(([, c]) => c.status === "ACTIVE")
+    .map(([id]) => id);
+  if (activeCampaignIds.length === 0) return [];
+
+  const raw: RawAudiencePoint[] = [];
+  for (const campaignId of activeCampaignIds) {
+    for (const dim of AUDIENCE_DIMENSIONS) {
+      const points = await fetchAudiencePivot(accessToken, adAccountId, campaignId, from, to, dim.pivot);
+      for (const p of points) {
+        raw.push({ campaignId, dimensionLabel: dim.label, ...p });
+      }
+    }
+  }
+  if (raw.length === 0) return [];
+
+  const names = await batchResolveTargetingEntities(accessToken, Array.from(new Set(raw.map((p) => p.urn))));
+
+  return raw.map((p) => [
+    campaignName(p.campaignId),
+    p.dimensionLabel,
+    names.get(p.urn) ?? p.urn,
+    p.impressions,
+    p.clicks,
+    p.cost * costToHkd,
+  ]);
+}
+
+async function fetchAudiencePivot(
+  accessToken: string,
+  adAccountId: string,
+  campaignId: string,
+  from: Date,
+  to: Date,
+  pivot: string
+): Promise<{ urn: string; impressions: number; clicks: number; cost: number }[]> {
+  const dateRange = `(start:${dateParam(from)},end:${dateParam(to)})`;
+  const fields = "pivotValues,impressions,clicks,costInLocalCurrency";
+  const url =
+    `https://api.linkedin.com/rest/adAnalytics?q=analytics&pivot=${pivot}&timeGranularity=ALL` +
+    `&dateRange=${dateRange}` +
+    `&campaigns=List(urn%3Ali%3AsponsoredCampaign%3A${campaignId})` +
+    `&fields=${fields}`;
+
+  const res = await linkedInGet<{ elements: LinkedInAnalyticsElement[] }>(url, accessToken);
+  return (res.elements ?? []).flatMap((el) => {
+    const urn = el.pivotValues?.[0];
+    if (!urn) return [];
+    return [
+      {
+        urn,
+        impressions: Number(el.impressions ?? 0),
+        clicks: Number(el.clicks ?? 0),
+        cost: Number(el.costInLocalCurrency ?? 0),
+      },
+    ];
+  });
 }
 
 async function batchResolveTargetingEntities(accessToken: string, urns: string[]): Promise<Map<string, string>> {

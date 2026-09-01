@@ -23,6 +23,7 @@ import {
   LinkedInCampaignGroupRow,
   LinkedInCreativeDailyRow,
   LinkedInTargetingRow,
+  LinkedInAudienceRow,
 } from "./types";
 
 const CAMPAIGNS = [
@@ -623,6 +624,35 @@ export function generateMockLinkedInTargeting(): LinkedInTargetingRow[] {
       for (const value of g.values) {
         rows.push({ campaign, facetType: g.facetType, value });
       }
+    }
+  }
+  return rows;
+}
+
+const LINKEDIN_AUDIENCE: Record<string, { dimension: string; values: string[] }[]> = {
+  Allcorrect_ABM_GameDevs_US_EU: [
+    { dimension: "Должности", values: ["Localization Project Manager", "Producer", "Art Director", "Founder"] },
+    { dimension: "Уровень должности", values: ["Manager", "Director", "Owner", "Senior"] },
+    { dimension: "Индустрия", values: ["Computer Games", "Software Development"] },
+  ],
+  Allcorrect_Sponsored_Content_Loc: [
+    { dimension: "Должности", values: ["Producer", "Marketing Manager", "Localization Manager"] },
+    { dimension: "Уровень должности", values: ["Director", "Manager", "VP"] },
+    { dimension: "Индустрия", values: ["Computer Games", "Entertainment"] },
+  ],
+};
+
+export function generateMockLinkedInAudience(): LinkedInAudienceRow[] {
+  const rand = seedRandom(89);
+  const rows: LinkedInAudienceRow[] = [];
+  for (const [campaign, dims] of Object.entries(LINKEDIN_AUDIENCE)) {
+    for (const d of dims) {
+      d.values.forEach((value, i) => {
+        const impressions = Math.round((800 - i * 150) * (0.7 + rand() * 0.6));
+        const clicks = Math.round(impressions * (0.005 + rand() * 0.01));
+        const cost = Math.round(clicks * (2 + rand() * 3));
+        rows.push({ campaign, dimension: d.dimension, value, impressions, clicks, cost });
+      });
     }
   }
   return rows;

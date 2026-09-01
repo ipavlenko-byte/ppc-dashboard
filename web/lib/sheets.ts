@@ -24,6 +24,7 @@ import {
   LinkedInCampaignGroupRow,
   LinkedInCreativeDailyRow,
   LinkedInTargetingRow,
+  LinkedInAudienceRow,
 } from "./types";
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -75,6 +76,7 @@ const TAB_RANGES = {
   linkedInCampaignGroups: "linkedin_campaign_groups!A:B",
   linkedInCreativesDaily: "linkedin_creatives_daily!A:G",
   linkedInTargeting: "linkedin_targeting!A:C",
+  linkedInAudience: "linkedin_audience!A:F",
 } as const;
 
 type TabKey = keyof typeof TAB_RANGES;
@@ -163,6 +165,7 @@ export interface AllSheetData {
   linkedInCampaignGroups: LinkedInCampaignGroupRow[];
   linkedInCreativesDaily: LinkedInCreativeDailyRow[];
   linkedInTargeting: LinkedInTargetingRow[];
+  linkedInAudience: LinkedInAudienceRow[];
 }
 
 export async function fetchAllSheetData(): Promise<AllSheetData> {
@@ -428,6 +431,17 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         campaign: r[0],
         facetType: r[1],
         value: r[2],
+      })),
+
+    linkedInAudience: tabs.linkedInAudience
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        campaign: r[0],
+        dimension: r[1],
+        value: r[2],
+        impressions: num(r[3]),
+        clicks: num(r[4]),
+        cost: num(r[5]),
       })),
   };
 }

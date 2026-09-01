@@ -53,6 +53,15 @@ export interface LinkedInTargetingRow {
   value: string;
 }
 
+export interface LinkedInAudienceRow {
+  campaign: string;
+  dimension: string; // Должности / Уровень должности / Индустрия
+  value: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+}
+
 export interface AdGroupDailyRow extends AdMetricsBase {
   adGroup: string;
 }
