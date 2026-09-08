@@ -15,6 +15,7 @@ import {
   GscCountryDailyRow,
   GscDeviceDailyRow,
   GscQueryCountryDailyRow,
+  GscTotalsDailyRow,
   Ga4TrafficMonthlyRow,
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
@@ -437,6 +438,27 @@ export function generateMockGscDevices(days = 30): GscDeviceDailyRow[] {
         ctr: impressions > 0 ? clicks / impressions : 0,
         position: Math.round(position * 10) / 10,
       });
+    });
+  }
+  return rows;
+}
+
+// Тотал по сайту всегда немного выше, чем сумма по gsc_query_daily — в реальных
+// данных Search Console скрывает часть редких запросов в детализированных
+// срезах; воспроизводим тот же эффект в демо-режиме, а не делаем числа идентичными.
+export function generateMockGscTotals(days = 30): GscTotalsDailyRow[] {
+  const rand = seedRandom(97);
+  const rows: GscTotalsDailyRow[] = [];
+  for (const date of generateMockDateRange(days)) {
+    const impressions = Math.round((4500 + rand() * 3000) * (0.85 + rand() * 0.3));
+    const clicks = Math.round(impressions * (0.006 + rand() * 0.006));
+    const position = Math.max(1, 8 + (rand() - 0.5) * 4);
+    rows.push({
+      date,
+      clicks,
+      impressions,
+      ctr: impressions > 0 ? clicks / impressions : 0,
+      position: Math.round(position * 10) / 10,
     });
   }
   return rows;

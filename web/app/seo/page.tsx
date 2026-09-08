@@ -28,7 +28,7 @@ export default async function SeoPage({
   const filter = resolveDateFilter(sp);
   const country = sp.country ?? "";
 
-  const { gscQueries, gscPages, gscCountries, gscQueryCountry, source } = await getDashboardData();
+  const { gscQueries, gscPages, gscCountries, gscQueryCountry, gscTotals, source } = await getDashboardData();
 
   const countries = Array.from(new Set(gscCountries.map((r) => r.country))).sort();
 
@@ -41,23 +41,36 @@ export default async function SeoPage({
 
   const queries = summarizeSeo(filteredQueries, (r) => r.query);
   const pages = summarizeSeo(filteredPages, (r) => r.page);
-  const total = grandTotalSeo(queries);
+
+  // GSC по политике приватности скрывает часть редких запросов в срезе date+query —
+  // сумма по queries всегда немного меньше настоящего тотала по сайту. Без фильтра
+  // по стране (у тотала нет разбивки по гео) берём точный тотал из gsc_totals_daily —
+  // это те же цифры, что "Total clicks/impressions" в самой Search Console.
+  const filteredTotals = country ? [] : applyDateFilter(gscTotals, filter);
+  const totalsSource = country ? queryRows : filteredTotals.length > 0 ? gscTotals : queryRows;
+  const useTotals = !country && filteredTotals.length > 0;
+
+  const total = useTotals
+    ? summarizeSeo(filteredTotals, () => "site")[0]
+    : grandTotalSeo(queries);
 
   // Сравнение с предыдущим периодом той же длины — как в Campaigns.
   // Если в этом диапазоне вообще нет строк (например, данные ещё не накопились
   // так глубоко), previousTotal остаётся null — дельты на тайлах не показываем,
   // а не выводим обманчивые "-100%" от нулевой базы.
-  const bounds = getPeriodBounds(queryRows, filter);
+  const bounds = getPeriodBounds(totalsSource, filter);
   const previousTotal = bounds
     ? (() => {
         const prev = getPreviousPeriodBounds(bounds);
-        const prevRows = filterByRange(queryRows, prev.from, prev.to);
-        const prevSummary = grandTotalSeo(summarizeSeo(prevRows, (r) => r.query));
-        return prevSummary.impressions > 0 ? prevSummary : null;
+        const prevRows = filterByRange(totalsSource, prev.from, prev.to);
+        const prevSummary = useTotals
+          ? summarizeSeo(prevRows, () => "site")[0]
+          : grandTotalSeo(summarizeSeo(prevRows as typeof queryRows, (r) => r.query));
+        return prevSummary && prevSummary.impressions > 0 ? prevSummary : null;
       })()
     : null;
 
-  const trend = seoDailyTrend(filteredQueries);
+  const trend = useTotals ? seoDailyTrend(filteredTotals) : seoDailyTrend(filteredQueries);
 
   return (
     <div className="flex flex-col gap-6">
@@ -104,7 +117,13 @@ export default async function SeoPage({
         <h2 className="text-sm font-semibold text-slate-600">
           Топ запросов{country ? ` — ${country}` : ""}
         </h2>
-        <SeoTable rows={queries} total={total} nameLabel="Запрос" />
+        <SeoTable rows={queries} total={grandTotalSeo(queries)} nameLabel="Запрос" />
+        {useTotals && (
+          <p className="text-xs text-slate-400">
+            Сумма по запросам ниже тотала выше — Search Console скрывает часть редких запросов в
+            детализированных отчётах (её собственное ограничение, не наша ошибка).
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">

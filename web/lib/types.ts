@@ -150,6 +150,18 @@ export interface GscQueryCountryDailyRow {
   position: number;
 }
 
+// Тотал по сайту без разбивки по query/page — Search Console скрывает часть
+// редких запросов в детализированных срезах (политика приватности), поэтому
+// сумма по gsc_query_daily/gsc_page_daily всегда немного меньше настоящего
+// тотала. Эти цифры точно совпадают с "Total clicks/impressions" в самой GSC.
+export interface GscTotalsDailyRow {
+  date: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
 export interface Ga4TrafficMonthlyRow {
   yearMonth: string; // YYYY-MM
   bucket: string; // Direct / Search: Google / Search: Other / Ads: Google / Ads: Other / Websites / AI / Social Networks / Other

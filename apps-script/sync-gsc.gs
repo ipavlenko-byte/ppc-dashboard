@@ -100,6 +100,22 @@ function syncGsc() {
   );
   gscSyncByDimension(spreadsheet, "device", "gsc_device_daily", ["date", "device", "clicks", "impressions", "ctr", "position"]);
   gscSyncQueryByCountry(spreadsheet);
+  gscSyncTotals(spreadsheet);
+}
+
+// Search Console по политике приватности скрывает часть строк в детализированных
+// срезах (date+query, date+page) — редкие/малообъёмные запросы туда просто не
+// попадают. Из-за этого сумма по gsc_query_daily/gsc_page_daily всегда немного
+// (или ощутимо) меньше настоящего тотала по сайту — это задокументированное
+// поведение самого API, не баг синка. Тянем тотал отдельным запросом БЕЗ разбивки
+// по query/page — эти цифры точно совпадают с "Total clicks/impressions" в самой
+// Search Console.
+function gscSyncTotals(spreadsheet) {
+  const today = new Date();
+  const endDate = gscShiftDate(today, -1);
+  const startDate = gscShiftDate(today, -GSC_LOOKBACK_DAYS);
+  const rows = gscRunReport(startDate, endDate, ["date"]);
+  gscWriteReport(spreadsheet, "gsc_totals_daily", ["date", "clicks", "impressions", "ctr", "position"], rows);
 }
 
 // Отдельно от gscSyncByDimension: тут 3 измерения (date+query+country), а не 2,

@@ -16,6 +16,7 @@ import {
   GscCountryDailyRow,
   GscDeviceDailyRow,
   GscQueryCountryDailyRow,
+  GscTotalsDailyRow,
   Ga4TrafficMonthlyRow,
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
@@ -68,6 +69,7 @@ const TAB_RANGES = {
   gscCountryDaily: "gsc_country_daily!A:F",
   gscDeviceDaily: "gsc_device_daily!A:F",
   gscQueryCountryDaily: "gsc_query_country_daily!A:G",
+  gscTotalsDaily: "gsc_totals_daily!A:E",
   ga4TrafficMonthly: "ga4_traffic_monthly!A:C",
   ga4TrafficSummaryMonthly: "ga4_traffic_summary_monthly!A:C",
   funnelMonthly: "funnel_monthly!A:C",
@@ -157,6 +159,7 @@ export interface AllSheetData {
   gscCountryDaily: GscCountryDailyRow[];
   gscDeviceDaily: GscDeviceDailyRow[];
   gscQueryCountryDaily: GscQueryCountryDailyRow[];
+  gscTotalsDaily: GscTotalsDailyRow[];
   ga4TrafficMonthly: Ga4TrafficMonthlyRow[];
   ga4TrafficSummaryMonthly: Ga4TrafficSummaryMonthlyRow[];
   funnelMonthly: FunnelMonthlyRow[];
@@ -359,6 +362,16 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         impressions: num(r[4]),
         ctr: num(r[5]),
         position: num(r[6]),
+      })),
+
+    gscTotalsDaily: tabs.gscTotalsDaily
+      .filter((r) => r[0])
+      .map((r) => ({
+        date: r[0],
+        clicks: num(r[1]),
+        impressions: num(r[2]),
+        ctr: num(r[3]),
+        position: num(r[4]),
       })),
 
     ga4TrafficMonthly: tabs.ga4TrafficMonthly
