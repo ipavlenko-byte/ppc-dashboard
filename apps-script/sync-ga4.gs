@@ -99,6 +99,11 @@ function writeFullReplace(spreadsheet, tabName, header, rows) {
   const sheet = spreadsheet.getSheetByName(tabName) || spreadsheet.insertSheet(tabName);
   sheet.clearContents();
   sheet.appendRow(header);
+  // Принудительно текстовый формат колонки A — иначе Sheets конвертирует
+  // "2026-01" в дату и отдаёт обратно как "2026-1" (тот же класс бага, что был
+  // с дублированием дат в других синках, просто без дедупа здесь эффект мягче —
+  // просто кривая подпись месяца, а не задвоенные строки).
+  sheet.getRange(1, 1, Math.max(sheet.getMaxRows(), 2), 1).setNumberFormat("@");
   if (rows.length > 0) {
     sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
   }
