@@ -26,6 +26,7 @@ const reportsLinks = [
   { href: "/reports/traffic", label: "Traffic" },
   { href: "/reports/funnel", label: "Воронка" },
   { href: "/reports/ads-monthly", label: "Google Ads" },
+  { href: "/reports/ads-weekly", label: "Google Ads по неделям" },
 ];
 
 export function Sidebar() {
