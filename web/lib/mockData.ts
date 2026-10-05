@@ -17,6 +17,7 @@ import {
   GscQueryCountryDailyRow,
   GscTotalsDailyRow,
   Ga4TrafficMonthlyRow,
+  Ga4TrafficSourceMonthlyRow,
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
@@ -525,6 +526,39 @@ export function generateMockGa4Traffic(months = 12): Ga4TrafficMonthlyRow[] {
     });
   }
   return rows;
+}
+
+const AI_SOURCE_SHARE: [string, number][] = [
+  ["chatgpt.com", 0.62],
+  ["perplexity.ai", 0.14],
+  ["gemini.google.com", 0.13],
+  ["claude.ai", 0.07],
+  ["copilot.microsoft.com", 0.04],
+];
+
+const SOCIAL_SOURCE_SHARE: [string, number][] = [
+  ["linkedin.com", 0.5],
+  ["facebook.com", 0.2],
+  ["x.com", 0.12],
+  ["reddit.com", 0.1],
+  ["youtube.com", 0.08],
+];
+
+export function generateMockGa4TrafficSources(rows: Ga4TrafficMonthlyRow[]): Ga4TrafficSourceMonthlyRow[] {
+  const out: Ga4TrafficSourceMonthlyRow[] = [];
+  const splits: [string, [string, number][]][] = [
+    ["AI", AI_SOURCE_SHARE],
+    ["Social Networks", SOCIAL_SOURCE_SHARE],
+  ];
+  for (const r of rows) {
+    for (const [bucket, shares] of splits) {
+      if (r.bucket !== bucket) continue;
+      for (const [source, share] of shares) {
+        out.push({ yearMonth: r.yearMonth, bucket, source, users: Math.round(r.users * share) });
+      }
+    }
+  }
+  return out;
 }
 
 export function generateMockGa4TrafficSummary(rows: Ga4TrafficMonthlyRow[]): Ga4TrafficSummaryMonthlyRow[] {

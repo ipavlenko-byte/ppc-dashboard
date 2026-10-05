@@ -18,6 +18,7 @@ import {
   GscQueryCountryDailyRow,
   GscTotalsDailyRow,
   Ga4TrafficMonthlyRow,
+  Ga4TrafficSourceMonthlyRow,
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
@@ -71,6 +72,7 @@ const TAB_RANGES = {
   gscQueryCountryDaily: "gsc_query_country_daily!A:G",
   gscTotalsDaily: "gsc_totals_daily!A:E",
   ga4TrafficMonthly: "ga4_traffic_monthly!A:C",
+  ga4TrafficSourcesMonthly: "ga4_traffic_sources_monthly!A:D",
   ga4TrafficSummaryMonthly: "ga4_traffic_summary_monthly!A:C",
   funnelMonthly: "funnel_monthly!A:C",
   funnelLeadsMonthly: "funnel_leads_monthly!A:D",
@@ -161,6 +163,7 @@ export interface AllSheetData {
   gscQueryCountryDaily: GscQueryCountryDailyRow[];
   gscTotalsDaily: GscTotalsDailyRow[];
   ga4TrafficMonthly: Ga4TrafficMonthlyRow[];
+  ga4TrafficSourcesMonthly: Ga4TrafficSourceMonthlyRow[];
   ga4TrafficSummaryMonthly: Ga4TrafficSummaryMonthlyRow[];
   funnelMonthly: FunnelMonthlyRow[];
   funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
@@ -380,6 +383,15 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         yearMonth: r[0],
         bucket: r[1],
         users: num(r[2]),
+      })),
+
+    ga4TrafficSourcesMonthly: tabs.ga4TrafficSourcesMonthly
+      .filter((r) => r[0] && r[1] && r[2])
+      .map((r) => ({
+        yearMonth: r[0],
+        bucket: r[1],
+        source: r[2],
+        users: num(r[3]),
       })),
 
     ga4TrafficSummaryMonthly: tabs.ga4TrafficSummaryMonthly

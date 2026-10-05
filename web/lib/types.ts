@@ -168,6 +168,14 @@ export interface Ga4TrafficMonthlyRow {
   users: number;
 }
 
+// Разбивка бакетов AI и Social Networks по конкретным источникам (chatgpt.com, facebook...).
+export interface Ga4TrafficSourceMonthlyRow {
+  yearMonth: string; // YYYY-MM
+  bucket: string; // AI / Social Networks
+  source: string;
+  users: number;
+}
+
 export interface Ga4TrafficSummaryMonthlyRow {
   yearMonth: string;
   totalUsers: number;

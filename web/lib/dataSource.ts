@@ -17,6 +17,7 @@ import {
   GscQueryCountryDailyRow,
   GscTotalsDailyRow,
   Ga4TrafficMonthlyRow,
+  Ga4TrafficSourceMonthlyRow,
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
@@ -46,6 +47,7 @@ import {
   generateMockGscQueryCountry,
   generateMockGscTotals,
   generateMockGa4Traffic,
+  generateMockGa4TrafficSources,
   generateMockGa4TrafficSummary,
   generateMockFunnelMonthly,
   generateMockFunnelLeadsMonthly,
@@ -75,6 +77,7 @@ export interface DashboardData {
   gscQueryCountry: GscQueryCountryDailyRow[];
   gscTotals: GscTotalsDailyRow[];
   ga4Traffic: Ga4TrafficMonthlyRow[];
+  ga4TrafficSources: Ga4TrafficSourceMonthlyRow[];
   ga4TrafficSummary: Ga4TrafficSummaryMonthlyRow[];
   funnelMonthly: FunnelMonthlyRow[];
   funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
@@ -106,6 +109,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       gscQueryCountry: data.gscQueryCountryDaily,
       gscTotals: data.gscTotalsDaily,
       ga4Traffic: data.ga4TrafficMonthly,
+      ga4TrafficSources: data.ga4TrafficSourcesMonthly,
       ga4TrafficSummary: data.ga4TrafficSummaryMonthly,
       funnelMonthly: data.funnelMonthly,
       funnelLeadsMonthly: data.funnelLeadsMonthly,
@@ -136,6 +140,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const gscQueryCountry = generateMockGscQueryCountry(30);
   const gscTotals = generateMockGscTotals(30);
   const ga4Traffic = generateMockGa4Traffic(12);
+  const ga4TrafficSources = generateMockGa4TrafficSources(ga4Traffic);
   const ga4TrafficSummary = generateMockGa4TrafficSummary(ga4Traffic);
   const funnelMonthly = generateMockFunnelMonthly(20);
   const funnelLeadsMonthly = generateMockFunnelLeadsMonthly(20);
@@ -162,6 +167,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     gscQueryCountry,
     gscTotals,
     ga4Traffic,
+    ga4TrafficSources,
     ga4TrafficSummary,
     funnelMonthly,
     funnelLeadsMonthly,

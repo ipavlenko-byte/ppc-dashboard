@@ -66,6 +66,30 @@ function syncTrafficByChannel(spreadsheet) {
     .sort((a, b) => a[0].localeCompare(b[0]));
   writeFullReplace(spreadsheet, "ga4_traffic_monthly", ["yearMonth", "bucket", "users"], bucketRows);
 
+  // Детализация бакетов AI и Social Networks по конкретным источникам —
+  // чтобы видеть, какие именно AI-чаты и соцсети приводят пользователей.
+  const sourceTotals = new Map();
+  byBucket.forEach((r) => {
+    const bucket = classifyTrafficBucket(r.dims[1], r.dims[2]);
+    if (bucket !== "AI" && bucket !== "Social Networks") return;
+    const yearMonth = formatYearMonth(r.dims[0]);
+    const source = bucket === "Social Networks" ? normalizeSocialSource(r.dims[2]) : (r.dims[2] || "").toLowerCase();
+    const key = `${yearMonth}__${bucket}__${source}`;
+    sourceTotals.set(key, (sourceTotals.get(key) || 0) + Number(r.metrics[0]));
+  });
+  const sourceRows = Array.from(sourceTotals.entries())
+    .map(([key, users]) => {
+      const [yearMonth, bucket, source] = key.split("__");
+      return [yearMonth, bucket, source, users];
+    })
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  writeFullReplace(
+    spreadsheet,
+    "ga4_traffic_sources_monthly",
+    ["yearMonth", "bucket", "source", "users"],
+    sourceRows
+  );
+
   const summary = runGa4RawReport(["yearMonth"], ["totalUsers", "bounceRate"]);
   const summaryRows = summary
     .map((r) => [formatYearMonth(r.dims[0]), Number(r.metrics[0]), Number(r.metrics[1])])
@@ -87,6 +111,24 @@ function classifyTrafficBucket(channelGroup, source) {
   if (channelGroup === "Referral") return "Websites";
   if (channelGroup.indexOf("Social") !== -1) return "Social Networks";
   return "Other";
+}
+
+// Склеиваем варианты одной соцсети (m.facebook.com, l.facebook.com, t.co, lnkd.in...).
+function normalizeSocialSource(raw) {
+  let src = (raw || "").toLowerCase().replace(/^(www|m|l|lm|mobile|out)\./, "");
+  const aliases = {
+    "t.co": "x.com",
+    "twitter.com": "x.com",
+    "lnkd.in": "linkedin.com",
+    "fb": "facebook.com",
+    "facebook": "facebook.com",
+    "linkedin": "linkedin.com",
+    "instagram": "instagram.com",
+    "youtube": "youtube.com",
+    "reddit": "reddit.com",
+    "twitter": "x.com",
+  };
+  return aliases[src] || src;
 }
 
 // GA4 отдаёт yearMonth как "202603" — приводим к "2026-03" для единообразия с

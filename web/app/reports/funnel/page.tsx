@@ -1,6 +1,7 @@
 import { getDashboardData } from "@/lib/dataSource";
 import { summarizeFunnelByMonth } from "@/lib/funnel";
 import { LeadTrendChart } from "@/components/LeadTrendChart";
+import { FunnelBarChart } from "@/components/FunnelBarChart";
 import { fmtInt, fmtOrDash, fmtDecimal } from "@/lib/format";
 
 export const revalidate = 300;
@@ -174,6 +175,15 @@ export default async function FunnelReportPage() {
               </tbody>
             </table>
           </div>
+
+          <FunnelBarChart
+            data={summaries.slice(-12).map((s) => ({
+              month: s.month,
+              leads: s.totalLeads,
+              qualified: s.totalQualifiedLeads,
+              clients: s.clients,
+            }))}
+          />
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <LeadTrendChart title="Leads по месяцам" data={buildYearlyData((s) => s.totalLeads)} years={years} />

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 const adsLinks = [
   { href: "/", label: "Dashboard" },
+  { href: "/reports/ads-weekly", label: "Google Ads по неделям" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/recommendations", label: "Рекомендации" },
   { href: "/search-terms", label: "Search Terms" },
@@ -26,7 +27,6 @@ const reportsLinks = [
   { href: "/reports/traffic", label: "Traffic" },
   { href: "/reports/funnel", label: "Воронка" },
   { href: "/reports/ads-monthly", label: "Google Ads" },
-  { href: "/reports/ads-weekly", label: "Google Ads по неделям" },
 ];
 
 export function Sidebar() {

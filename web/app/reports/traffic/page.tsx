@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { getDashboardData } from "@/lib/dataSource";
 import { fmtInt, fmtPct } from "@/lib/format";
 
@@ -24,7 +25,7 @@ const FIRST_COL_HEAD = `${HEAD_CELL} sticky left-0 z-30 text-left`;
 const FIRST_COL_BODY = "sticky left-0 z-10 bg-white px-4 py-2.5 font-medium text-slate-800";
 
 export default async function TrafficReportPage() {
-  const { ga4Traffic, ga4TrafficSummary, source } = await getDashboardData();
+  const { ga4Traffic, ga4TrafficSources, ga4TrafficSummary, source } = await getDashboardData();
 
   // Скрипт тянет ~13 месяцев (запас на дозревание текущего), показываем последние 12.
   const months = Array.from(new Set(ga4Traffic.map((r) => r.yearMonth)))
@@ -33,6 +34,22 @@ export default async function TrafficReportPage() {
   const usersByBucketMonth = new Map<string, number>();
   for (const r of ga4Traffic) {
     usersByBucketMonth.set(`${r.bucket}__${r.yearMonth}`, r.users);
+  }
+  // Разбивка AI и соцсетей по источникам: источники отсортированы по сумме за период.
+  const sourcesByBucket = new Map<string, string[]>();
+  const usersBySourceMonth = new Map<string, number>();
+  const sourceTotal = new Map<string, number>();
+  for (const r of ga4TrafficSources) {
+    usersBySourceMonth.set(`${r.bucket}__${r.source}__${r.yearMonth}`, r.users);
+    const k = `${r.bucket}__${r.source}`;
+    sourceTotal.set(k, (sourceTotal.get(k) ?? 0) + r.users);
+  }
+  for (const k of sourceTotal.keys()) {
+    const [bucket, src] = k.split("__");
+    sourcesByBucket.set(bucket, [...(sourcesByBucket.get(bucket) ?? []), src]);
+  }
+  for (const [bucket, list] of sourcesByBucket) {
+    list.sort((a, b) => (sourceTotal.get(`${bucket}__${b}`) ?? 0) - (sourceTotal.get(`${bucket}__${a}`) ?? 0));
   }
   const summaryByMonth = new Map(ga4TrafficSummary.map((r) => [r.yearMonth, r]));
 
@@ -71,14 +88,26 @@ export default async function TrafficReportPage() {
             </thead>
             <tbody>
               {BUCKET_ORDER.map((bucket) => (
-                <tr key={bucket} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className={FIRST_COL_BODY}>{bucket}</td>
-                  {months.map((m) => (
-                    <td key={m} className="px-4 py-2.5 text-right text-slate-700">
-                      {fmtInt(usersByBucketMonth.get(`${bucket}__${m}`) ?? 0)}
-                    </td>
+                <Fragment key={bucket}>
+                  <tr className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className={FIRST_COL_BODY}>{bucket}</td>
+                    {months.map((m) => (
+                      <td key={m} className="px-4 py-2.5 text-right text-slate-700">
+                        {fmtInt(usersByBucketMonth.get(`${bucket}__${m}`) ?? 0)}
+                      </td>
+                    ))}
+                  </tr>
+                  {(sourcesByBucket.get(bucket) ?? []).map((src) => (
+                    <tr key={`${bucket}-${src}`} className="border-b border-slate-50">
+                      <td className="sticky left-0 z-10 bg-white px-4 py-1.5 pl-7 text-slate-500">{src}</td>
+                      {months.map((m) => (
+                        <td key={m} className="px-4 py-1.5 text-right text-slate-500">
+                          {fmtInt(usersBySourceMonth.get(`${bucket}__${src}__${m}`) ?? 0)}
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
+                </Fragment>
               ))}
               <tr className="border-b border-slate-100 bg-emerald-50 font-semibold text-slate-900">
                 <td className={`${FIRST_COL_BODY} bg-emerald-50 py-3`}>Всего пользователей</td>
