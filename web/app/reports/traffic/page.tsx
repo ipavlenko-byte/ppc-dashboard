@@ -58,6 +58,17 @@ export default async function TrafficReportPage() {
   for (const [bucket, list] of sourcesByBucket) {
     list.sort((a, b) => (sourceTotal.get(`${bucket}__${b}`) ?? 0) - (sourceTotal.get(`${bucket}__${a}`) ?? 0));
   }
+  // Среднее считаем без текущего (ещё идущего) месяца — иначе неполный месяц занижает цифру.
+  const now = new Date();
+  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const avgCount = months.length > 0 && months[months.length - 1] === currentYm ? months.length - 1 : months.length;
+  const avgMonths = months.slice(0, avgCount);
+  const avgHead = (
+    <th className={`${HEAD_CELL} min-w-[96px] text-right !bg-amber-100 !text-amber-900`}>
+      <div className="text-sm font-bold">Среднее</div>
+      <div className="text-[11px] font-medium opacity-70">в месяц</div>
+    </th>
+  );
   const summaryByMonth = new Map(ga4TrafficSummary.map((r) => [r.yearMonth, r]));
 
   return (
@@ -86,6 +97,7 @@ export default async function TrafficReportPage() {
             <thead>
               <tr>
                 <th className={`${FIRST_COL_HEAD} min-w-[200px]`}>Канал</th>
+                {avgHead}
                 {months.map((m) => (
                   <th
                     key={m}
@@ -106,6 +118,7 @@ export default async function TrafficReportPage() {
                   key={bucket}
                   bucket={bucket}
                   values={months.map((m) => usersByBucketMonth.get(`${bucket}__${m}`) ?? 0)}
+                  avgCount={avgCount}
                   sources={(sourcesByBucket.get(bucket) ?? []).map((src) => ({
                     source: src,
                     values: months.map((m) => usersBySourceMonth.get(`${bucket}__${src}__${m}`) ?? 0),
@@ -114,6 +127,15 @@ export default async function TrafficReportPage() {
               ))}
               <tr className="border-b border-slate-100 bg-emerald-50 font-semibold text-slate-900">
                 <td className={`${FIRST_COL_BODY} bg-emerald-50 py-3`}>Всего пользователей</td>
+                <td className="bg-amber-100 px-4 py-3 text-right text-amber-900">
+                  {fmtInt(
+                    Math.round(
+                      avgMonths.length
+                        ? avgMonths.reduce((a, m) => a + (summaryByMonth.get(m)?.totalUsers ?? 0), 0) / avgMonths.length
+                        : 0
+                    )
+                  )}
+                </td>
                 {months.map((m) => (
                   <td key={m} className="px-4 py-3 text-right">
                     {fmtInt(summaryByMonth.get(m)?.totalUsers ?? 0)}
@@ -122,6 +144,17 @@ export default async function TrafficReportPage() {
               </tr>
               <tr className="font-semibold text-slate-900">
                 <td className={`${FIRST_COL_BODY} py-3`}>Bounce rate</td>
+                <td className="bg-amber-50 px-4 py-3 text-right text-amber-900">
+                  {(() => {
+                    // Средневзвешенный по пользователям bounce rate.
+                    const users = avgMonths.reduce((a, m) => a + (summaryByMonth.get(m)?.totalUsers ?? 0), 0);
+                    const w = avgMonths.reduce(
+                      (a, m) => a + (summaryByMonth.get(m)?.bounceRate ?? 0) * (summaryByMonth.get(m)?.totalUsers ?? 0),
+                      0
+                    );
+                    return users > 0 ? fmtPct(w / users) : "—";
+                  })()}
+                </td>
                 {months.map((m) => {
                   const br = summaryByMonth.get(m)?.bounceRate;
                   return (

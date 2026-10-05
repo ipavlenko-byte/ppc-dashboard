@@ -23,14 +23,21 @@ export interface TrafficSourceLine {
 }
 
 // Строка канала; если есть разбивка по источникам — по клику раскрывается (по умолчанию закрыта).
+const avgOf = (values: number[], count: number) =>
+  count > 0 ? values.slice(0, count).reduce((a, b) => a + b, 0) / count : 0;
+
+const AVG_CELL = "bg-amber-50 px-4 text-right font-semibold text-amber-900";
+
 export function TrafficBucketRows({
   bucket,
   values,
   sources,
+  avgCount,
 }: {
   bucket: string;
   values: number[];
   sources: TrafficSourceLine[];
+  avgCount: number; // сколько первых месяцев входит в среднее
 }) {
   const [open, setOpen] = useState(false);
   const expandable = sources.length > 0;
@@ -48,6 +55,7 @@ export function TrafficBucketRows({
           <span className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${DOT_COLORS[bucket] ?? "bg-slate-300"}`} />
           {bucket}
         </td>
+        <td className={`${AVG_CELL} py-2.5`}>{fmtInt(Math.round(avgOf(values, avgCount)))}</td>
         {values.map((v, i) => (
           <td key={i} className="px-4 py-2.5 text-right font-medium text-slate-800">
             {fmtInt(v)}
@@ -58,6 +66,7 @@ export function TrafficBucketRows({
         sources.map((s) => (
           <tr key={s.source} className="border-b border-slate-50 bg-slate-50/40">
             <td className="sticky left-0 z-10 bg-slate-50 px-4 py-1.5 pl-10 text-slate-500">{s.source}</td>
+            <td className={`${AVG_CELL} py-1.5 font-medium`}>{fmtInt(Math.round(avgOf(s.values, avgCount)))}</td>
             {s.values.map((v, i) => (
               <td key={i} className="px-4 py-1.5 text-right text-slate-500">
                 {fmtInt(v)}

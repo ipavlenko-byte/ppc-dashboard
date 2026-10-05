@@ -9,6 +9,17 @@ export const revalidate = 300;
 const SOURCE_ORDER = ["Google CPC", "Organic", "Direct", "Referral", "AI", "Other"];
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// Визуальные кварталы: чередующаяся подсветка колонок и вертикальная линия на старте квартала.
+function quarterOf(month: string): { q: number; label: string; start: boolean } {
+  const [y, m] = month.split("-").map(Number);
+  const q = Math.ceil(m / 3);
+  return { q: y * 4 + q, label: `Q${q} ${y}`, start: (m - 1) % 3 === 0 };
+}
+const quarterCell = (month: string) => {
+  const { q, start } = quarterOf(month);
+  return `${q % 2 === 0 ? "bg-blue-50/60" : ""} ${start ? "border-l-2 border-l-slate-300" : ""}`;
+};
+
 function fmtCr(v: number | null) {
   return fmtOrDash(v, (n) => `${fmtDecimal(n)}%`);
 }
@@ -84,7 +95,15 @@ export default async function FunnelReportPage() {
                 <tr>
                   <th className={`${FIRST_COL_HEAD} min-w-[180px]`}>Метрика</th>
                   {months.map((m) => (
-                    <th key={m} className={`${HEAD_CELL} min-w-[84px] text-right`}>
+                    <th
+                      key={m}
+                      className={`${HEAD_CELL} min-w-[84px] text-right ${
+                        quarterOf(m).q % 2 === 0 ? "!bg-blue-100" : ""
+                      } ${quarterOf(m).start ? "border-l-2 border-l-slate-300" : ""}`}
+                    >
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-blue-700">
+                        {quarterOf(m).start || m === months[0] ? quarterOf(m).label : ""}
+                      </div>
                       {m}
                     </th>
                   ))}
@@ -94,7 +113,7 @@ export default async function FunnelReportPage() {
                 <tr className="border-b border-slate-100 bg-slate-100">
                   <td className={mainRowFirstCol("bg-slate-100")}>Users</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2.5 text-right font-semibold text-slate-900">
+                    <td key={s.month} className={`px-4 py-2.5 text-right font-semibold text-slate-900 ${quarterCell(s.month)}`}>
                       {fmtInt(s.users)}
                     </td>
                   ))}
@@ -102,7 +121,7 @@ export default async function FunnelReportPage() {
                 <tr className="border-b border-slate-100">
                   <td className={crRowFirstCol}>CR1 = leads / users</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-1.5 text-right text-xs italic text-slate-400">
+                    <td key={s.month} className={`px-4 py-1.5 text-right text-xs italic text-slate-400 ${quarterCell(s.month)}`}>
                       {fmtCr(s.cr1)}
                     </td>
                   ))}
@@ -111,7 +130,7 @@ export default async function FunnelReportPage() {
                 <tr className="border-b border-slate-100 bg-slate-100">
                   <td className={mainRowFirstCol("bg-slate-100")}>Leads</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2.5 text-right font-semibold text-slate-900">
+                    <td key={s.month} className={`px-4 py-2.5 text-right font-semibold text-slate-900 ${quarterCell(s.month)}`}>
                       {fmtInt(s.totalLeads)}
                     </td>
                   ))}
@@ -120,7 +139,7 @@ export default async function FunnelReportPage() {
                   <tr key={`leads-${src}`} className="border-b border-slate-50">
                     <td className={sourceRowFirstCol}>{src}</td>
                     {months.map((m) => (
-                      <td key={m} className="px-4 py-1.5 text-right text-slate-500">
+                      <td key={m} className={`px-4 py-1.5 text-right text-slate-500 ${quarterCell(m)}`}>
                         {fmtInt(bySourceMap(m, src, "leads"))}
                       </td>
                     ))}
@@ -130,7 +149,7 @@ export default async function FunnelReportPage() {
                 <tr className="border-b border-slate-100">
                   <td className={crRowFirstCol}>CR2 = qualified / leads</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-1.5 text-right text-xs italic text-slate-400">
+                    <td key={s.month} className={`px-4 py-1.5 text-right text-xs italic text-slate-400 ${quarterCell(s.month)}`}>
                       {fmtCr(s.cr2)}
                     </td>
                   ))}
@@ -139,7 +158,7 @@ export default async function FunnelReportPage() {
                 <tr className="border-b border-slate-100 bg-slate-100">
                   <td className={mainRowFirstCol("bg-slate-100")}>Qualified leads</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-2.5 text-right font-semibold text-slate-900">
+                    <td key={s.month} className={`px-4 py-2.5 text-right font-semibold text-slate-900 ${quarterCell(s.month)}`}>
                       {fmtInt(s.totalQualifiedLeads)}
                     </td>
                   ))}
@@ -148,7 +167,7 @@ export default async function FunnelReportPage() {
                   <tr key={`qual-${src}`} className="border-b border-slate-50">
                     <td className={sourceRowFirstCol}>{src}</td>
                     {months.map((m) => (
-                      <td key={m} className="px-4 py-1.5 text-right text-slate-500">
+                      <td key={m} className={`px-4 py-1.5 text-right text-slate-500 ${quarterCell(m)}`}>
                         {fmtInt(bySourceMap(m, src, "qualifiedLeads"))}
                       </td>
                     ))}
@@ -158,7 +177,7 @@ export default async function FunnelReportPage() {
                 <tr className="border-b border-slate-100">
                   <td className={crRowFirstCol}>CR3 = clients / qualified</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-1.5 text-right text-xs italic text-slate-400">
+                    <td key={s.month} className={`px-4 py-1.5 text-right text-xs italic text-slate-400 ${quarterCell(s.month)}`}>
                       {fmtCr(s.cr3)}
                     </td>
                   ))}
@@ -167,7 +186,7 @@ export default async function FunnelReportPage() {
                 <tr className="bg-emerald-50">
                   <td className={mainRowFirstCol("bg-emerald-50")}>Clients</td>
                   {summaries.map((s) => (
-                    <td key={s.month} className="px-4 py-3 text-right font-semibold text-slate-900">
+                    <td key={s.month} className={`px-4 py-3 text-right font-semibold text-slate-900 ${quarterCell(s.month)}`}>
                       {fmtInt(s.clients)}
                     </td>
                   ))}
