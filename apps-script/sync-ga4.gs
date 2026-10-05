@@ -102,6 +102,23 @@ function syncTrafficByChannel(spreadsheet) {
   );
 }
 
+// Диагностика: запустите вручную, чтобы увидеть в логе, из чего состоит бакет
+// (по умолчанию "Other") за выбранный месяц — какие channel group / source дали трафик.
+function debugTrafficBucket() {
+  const MONTH = "2026-07";
+  const BUCKET = "Other";
+  const rows = runGa4RawReport(
+    ["yearMonth", "sessionDefaultChannelGroup", "sessionSource"],
+    ["totalUsers", "sessions", "bounceRate"]
+  )
+    .filter((r) => formatYearMonth(r.dims[0]) === MONTH && classifyTrafficBucket(r.dims[1], r.dims[2]) === BUCKET)
+    .sort((a, b) => Number(b.metrics[0]) - Number(a.metrics[0]))
+    .slice(0, 20);
+  rows.forEach((r) =>
+    Logger.log(`${r.dims[1]} | ${r.dims[2]} | users=${r.metrics[0]} sessions=${r.metrics[1]} bounce=${Number(r.metrics[2]).toFixed(2)}`)
+  );
+}
+
 function classifyTrafficBucket(channelGroup, source) {
   const src = (source || "").toLowerCase();
   if (GA4_AI_SOURCES.indexOf(src) !== -1) return "AI";
