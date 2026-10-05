@@ -51,12 +51,12 @@ function syncGa4() {
 function syncTrafficByChannel(spreadsheet) {
   const byBucket = runGa4RawReport(
     ["yearMonth", "sessionDefaultChannelGroup", "sessionSource"],
-    ["totalUsers"]
+    ["totalUsers", "bounceRate"]
   );
   const bucketTotals = new Map();
   byBucket.forEach((r) => {
     const yearMonth = formatYearMonth(r.dims[0]);
-    const bucket = classifyTrafficBucket(r.dims[1], r.dims[2]);
+    const bucket = classifyTrafficBucket(r.dims[1], r.dims[2], Number(r.metrics[1]));
     const key = `${yearMonth}__${bucket}`;
     bucketTotals.set(key, (bucketTotals.get(key) || 0) + Number(r.metrics[0]));
   });
@@ -72,7 +72,7 @@ function syncTrafficByChannel(spreadsheet) {
   // чтобы видеть, какие именно AI-чаты и соцсети приводят пользователей.
   const sourceTotals = new Map();
   byBucket.forEach((r) => {
-    const bucket = classifyTrafficBucket(r.dims[1], r.dims[2]);
+    const bucket = classifyTrafficBucket(r.dims[1], r.dims[2], Number(r.metrics[1]));
     if (bucket !== "AI" && bucket !== "Social Networks") return;
     const yearMonth = formatYearMonth(r.dims[0]);
     const source = bucket === "Social Networks" ? normalizeSocialSource(r.dims[2]) : (r.dims[2] || "").toLowerCase();
@@ -113,7 +113,7 @@ function debugTrafficBucket() {
     ["yearMonth", "sessionDefaultChannelGroup", "sessionSource"],
     ["totalUsers", "sessions", "bounceRate"]
   )
-    .filter((r) => formatYearMonth(r.dims[0]) === MONTH && classifyTrafficBucket(r.dims[1], r.dims[2]) === BUCKET)
+    .filter((r) => formatYearMonth(r.dims[0]) === MONTH && classifyTrafficBucket(r.dims[1], r.dims[2], Number(r.metrics[2])) === BUCKET)
     .sort((a, b) => Number(b.metrics[0]) - Number(a.metrics[0]))
     .slice(0, 20);
   rows.forEach((r) =>
@@ -121,13 +121,12 @@ function debugTrafficBucket() {
   );
 }
 
-function classifyTrafficBucket(channelGroup, source) {
+function classifyTrafficBucket(channelGroup, source, bounceRate) {
   const src = (source || "").toLowerCase();
   if (GA4_AI_SOURCES.indexOf(src) !== -1 || channelGroup === "AI Assistant") return "AI";
-  // Unassigned / (not set) — трафик без источника, как правило боты и спам
-  // (в июле 2026 дал всплеск ~970 пользователей со 100% bounce). Выносим отдельно,
-  // чтобы не раздувать "Other".
-  if (channelGroup === "Unassigned") return "Unassigned";
+  // Бот-трафик: ТОЛЬКО Unassigned с пустым источником "(not set)" и почти 100% bounce.
+  // Unassigned с реальным источником (clutch.co и т.п.) — это живые люди, они остаются в Other.
+  if (channelGroup === "Unassigned" && src === "(not set)" && bounceRate >= 0.9) return "Bots";
   if (channelGroup === "Direct") return "Direct";
   if (channelGroup === "Organic Search") return src === "google" ? "Search: Google" : "Search: Other";
   if (channelGroup.indexOf("Paid") === 0) return src === "google" ? "Ads: Google" : "Ads: Other";

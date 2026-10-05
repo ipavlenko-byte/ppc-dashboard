@@ -12,7 +12,7 @@ const DOT_COLORS: Record<string, string> = {
   Websites: "bg-teal-500",
   AI: "bg-violet-500",
   "Social Networks": "bg-pink-500",
-  Unassigned: "bg-red-400",
+  Bots: "bg-red-400",
   Other: "bg-slate-300",
 };
 
