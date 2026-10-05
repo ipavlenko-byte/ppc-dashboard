@@ -24,6 +24,31 @@ export interface TrafficSourceLine {
 }
 
 // Строка канала; если есть разбивка по источникам — по клику раскрывается (по умолчанию закрыта).
+// Маркер "лучше/хуже среднего": разница меньше порога считается шумом и не показывается.
+export function AvgMarker({
+  value,
+  avg,
+  higherIsBetter = true,
+}: {
+  value: number;
+  avg: number;
+  higherIsBetter?: boolean;
+}) {
+  if (!(avg > 0)) return null;
+  const pct = ((value - avg) / avg) * 100;
+  if (Math.abs(pct) < 10) return null;
+  const good = higherIsBetter ? pct > 0 : pct < 0;
+  return (
+    <span
+      title={`${pct > 0 ? "+" : ""}${Math.round(pct)}% к среднему`}
+      className={`mr-1.5 text-[10px] font-semibold ${good ? "text-emerald-600" : "text-red-500"}`}
+    >
+      {pct > 0 ? "▲" : "▼"}
+      {Math.abs(Math.round(pct))}%
+    </span>
+  );
+}
+
 const avgOf = (values: number[], count: number) =>
   count > 0 ? values.slice(0, count).reduce((a, b) => a + b, 0) / count : 0;
 
@@ -42,6 +67,8 @@ export function TrafficBucketRows({
 }) {
   const [open, setOpen] = useState(false);
   const expandable = sources.length > 0;
+  const higherIsBetter = bucket !== "Bots"; // для ботов рост — это плохо
+  const avg = avgOf(values, avgCount);
 
   return (
     <>
@@ -59,6 +86,7 @@ export function TrafficBucketRows({
         <td className={`${AVG_CELL} py-2.5`}>{fmtInt(Math.round(avgOf(values, avgCount)))}</td>
         {values.map((v, i) => (
           <td key={i} className="px-4 py-2.5 text-right font-medium text-slate-800">
+            {i < avgCount && <AvgMarker value={v} avg={avg} higherIsBetter={higherIsBetter} />}
             {fmtInt(v)}
           </td>
         ))}
@@ -70,6 +98,7 @@ export function TrafficBucketRows({
             <td className={`${AVG_CELL} py-1.5 font-medium`}>{fmtInt(Math.round(avgOf(s.values, avgCount)))}</td>
             {s.values.map((v, i) => (
               <td key={i} className="px-4 py-1.5 text-right text-slate-500">
+                {i < avgCount && <AvgMarker value={v} avg={avgOf(s.values, avgCount)} higherIsBetter={higherIsBetter} />}
                 {fmtInt(v)}
               </td>
             ))}
