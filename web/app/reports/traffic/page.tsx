@@ -20,9 +20,16 @@ const BUCKET_ORDER = [
 // Первая колонка и шапка закреплены (sticky), поэтому у каждой ячейки в них
 // должен быть свой непрозрачный фон — иначе при скролле сквозь них будет
 // просвечивать текст соседних колонок/строк.
-const HEAD_CELL = "sticky top-0 z-20 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500";
+const MONTH_NAMES = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+
+function monthParts(ym: string): { name: string; year: string } {
+  const [y, m] = ym.split("-");
+  return { name: MONTH_NAMES[Number(m) - 1] ?? ym, year: y };
+}
+
+const HEAD_CELL = "sticky top-0 z-20 border-b-2 border-slate-200 bg-slate-100 px-4 py-3 text-slate-600";
 const FIRST_COL_HEAD = `${HEAD_CELL} sticky left-0 z-30 text-left`;
-const FIRST_COL_BODY = "sticky left-0 z-10 bg-white px-4 py-2.5 font-medium text-slate-800";
+const FIRST_COL_BODY = "sticky left-0 z-10 whitespace-nowrap bg-white px-4 py-2.5 font-semibold text-slate-800";
 
 export default async function TrafficReportPage() {
   const { ga4Traffic, ga4TrafficSources, ga4TrafficSummary, source } = await getDashboardData();
@@ -57,7 +64,7 @@ export default async function TrafficReportPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Traffic — последние {months.length || 12} мес.</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Traffic — последние {months.length || 12} мес.</h1>
           <p className="mt-1 text-sm text-slate-500">
             Пользователи по каналам, источник — Google Analytics (GA4).
           </p>
@@ -74,14 +81,21 @@ export default async function TrafficReportPage() {
           Нет данных — запустите syncTrafficByChannel в sync-ga4.gs (см. SETUP.md)
         </div>
       ) : (
-        <div className="max-h-[75vh] overflow-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="max-h-[75vh] overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full border-separate border-spacing-0 text-sm tabular-nums">
             <thead>
               <tr>
-                <th className={`${FIRST_COL_HEAD} min-w-[160px]`}>Канал</th>
+                <th className={`${FIRST_COL_HEAD} min-w-[200px]`}>Канал</th>
                 {months.map((m) => (
-                  <th key={m} className={`${HEAD_CELL} min-w-[92px] text-right`}>
-                    {m}
+                  <th
+                    key={m}
+                    className={`${HEAD_CELL} min-w-[92px] text-right ${m === months[months.length - 1] ? "!bg-blue-100 !text-blue-800" : ""}`}
+                  >
+                    <div className="text-sm font-bold">{monthParts(m).name}</div>
+                    <div className="text-[11px] font-medium opacity-70">
+                      {monthParts(m).year}
+                      {m === months[months.length - 1] ? " · идёт" : ""}
+                    </div>
                   </th>
                 ))}
               </tr>

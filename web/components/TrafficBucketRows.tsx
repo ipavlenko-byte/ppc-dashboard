@@ -3,6 +3,18 @@
 import { useState } from "react";
 import { fmtInt } from "@/lib/format";
 
+const DOT_COLORS: Record<string, string> = {
+  Direct: "bg-slate-500",
+  "Search: Google": "bg-blue-500",
+  "Search: Other": "bg-sky-400",
+  "Ads: Google": "bg-amber-500",
+  "Ads: Other": "bg-orange-400",
+  Websites: "bg-teal-500",
+  AI: "bg-violet-500",
+  "Social Networks": "bg-pink-500",
+  Other: "bg-slate-300",
+};
+
 const FIRST_COL_BODY = "sticky left-0 z-10 bg-white px-4 py-2.5 font-medium text-slate-800";
 
 export interface TrafficSourceLine {
@@ -26,25 +38,26 @@ export function TrafficBucketRows({
   return (
     <>
       <tr
-        className={`border-b border-slate-100 hover:bg-slate-50 ${expandable ? "cursor-pointer" : ""}`}
+        className={`border-b border-slate-100 hover:bg-blue-50/60 ${expandable ? "cursor-pointer" : ""}`}
         onClick={expandable ? () => setOpen((o) => !o) : undefined}
       >
         <td className={FIRST_COL_BODY}>
           {expandable && (
             <span className="mr-1.5 inline-block w-3 text-xs text-slate-400">{open ? "▾" : "▸"}</span>
           )}
+          <span className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${DOT_COLORS[bucket] ?? "bg-slate-300"}`} />
           {bucket}
         </td>
         {values.map((v, i) => (
-          <td key={i} className="px-4 py-2.5 text-right text-slate-700">
+          <td key={i} className="px-4 py-2.5 text-right font-medium text-slate-800">
             {fmtInt(v)}
           </td>
         ))}
       </tr>
       {open &&
         sources.map((s) => (
-          <tr key={s.source} className="border-b border-slate-50">
-            <td className="sticky left-0 z-10 bg-white px-4 py-1.5 pl-9 text-slate-500">{s.source}</td>
+          <tr key={s.source} className="border-b border-slate-50 bg-slate-50/40">
+            <td className="sticky left-0 z-10 bg-slate-50 px-4 py-1.5 pl-10 text-slate-500">{s.source}</td>
             {s.values.map((v, i) => (
               <td key={i} className="px-4 py-1.5 text-right text-slate-500">
                 {fmtInt(v)}
