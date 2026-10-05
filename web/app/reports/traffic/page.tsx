@@ -14,6 +14,7 @@ const BUCKET_ORDER = [
   "Websites",
   "AI",
   "Social Networks",
+  "Unassigned",
   "Other",
 ];
 

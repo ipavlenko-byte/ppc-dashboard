@@ -34,6 +34,8 @@ const GA4_AI_SOURCES = [
   "claude.ai",
   "poe.com",
   "you.com",
+  "copilot.com",
+  "openai",
 ];
 
 function syncGa4() {
@@ -121,7 +123,11 @@ function debugTrafficBucket() {
 
 function classifyTrafficBucket(channelGroup, source) {
   const src = (source || "").toLowerCase();
-  if (GA4_AI_SOURCES.indexOf(src) !== -1) return "AI";
+  if (GA4_AI_SOURCES.indexOf(src) !== -1 || channelGroup === "AI Assistant") return "AI";
+  // Unassigned / (not set) — трафик без источника, как правило боты и спам
+  // (в июле 2026 дал всплеск ~970 пользователей со 100% bounce). Выносим отдельно,
+  // чтобы не раздувать "Other".
+  if (channelGroup === "Unassigned") return "Unassigned";
   if (channelGroup === "Direct") return "Direct";
   if (channelGroup === "Organic Search") return src === "google" ? "Search: Google" : "Search: Other";
   if (channelGroup.indexOf("Paid") === 0) return src === "google" ? "Ads: Google" : "Ads: Other";
