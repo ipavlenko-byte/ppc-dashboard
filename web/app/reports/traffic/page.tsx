@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { TrafficBucketRows } from "@/components/TrafficBucketRows";
 import { getDashboardData } from "@/lib/dataSource";
 import { fmtInt, fmtPct } from "@/lib/format";
 
@@ -88,26 +88,15 @@ export default async function TrafficReportPage() {
             </thead>
             <tbody>
               {BUCKET_ORDER.map((bucket) => (
-                <Fragment key={bucket}>
-                  <tr className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className={FIRST_COL_BODY}>{bucket}</td>
-                    {months.map((m) => (
-                      <td key={m} className="px-4 py-2.5 text-right text-slate-700">
-                        {fmtInt(usersByBucketMonth.get(`${bucket}__${m}`) ?? 0)}
-                      </td>
-                    ))}
-                  </tr>
-                  {(sourcesByBucket.get(bucket) ?? []).map((src) => (
-                    <tr key={`${bucket}-${src}`} className="border-b border-slate-50">
-                      <td className="sticky left-0 z-10 bg-white px-4 py-1.5 pl-7 text-slate-500">{src}</td>
-                      {months.map((m) => (
-                        <td key={m} className="px-4 py-1.5 text-right text-slate-500">
-                          {fmtInt(usersBySourceMonth.get(`${bucket}__${src}__${m}`) ?? 0)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </Fragment>
+                <TrafficBucketRows
+                  key={bucket}
+                  bucket={bucket}
+                  values={months.map((m) => usersByBucketMonth.get(`${bucket}__${m}`) ?? 0)}
+                  sources={(sourcesByBucket.get(bucket) ?? []).map((src) => ({
+                    source: src,
+                    values: months.map((m) => usersBySourceMonth.get(`${bucket}__${src}__${m}`) ?? 0),
+                  }))}
+                />
               ))}
               <tr className="border-b border-slate-100 bg-emerald-50 font-semibold text-slate-900">
                 <td className={`${FIRST_COL_BODY} bg-emerald-50 py-3`}>Всего пользователей</td>
