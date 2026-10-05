@@ -76,7 +76,7 @@ export default async function BudgetPacingPage({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Пейсинг бюджета — {filter.label}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Пейсинг бюджета — {filter.label}</h1>
           <p className="mt-1 text-sm text-slate-500">
             Средний дневной расход за период против дневного бюджета кампании.
           </p>
@@ -132,7 +132,7 @@ export default async function BudgetPacingPage({
       )}
 
       {pacing.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
           Нет данных о бюджете — запустите обновлённый sync-campaigns.js (см. SETUP.md)
         </div>
       ) : (
@@ -144,7 +144,7 @@ export default async function BudgetPacingPage({
               rows={csvRows}
             />
           </div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full min-w-[700px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">

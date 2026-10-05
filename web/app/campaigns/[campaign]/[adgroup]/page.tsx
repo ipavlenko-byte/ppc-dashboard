@@ -50,7 +50,7 @@ export default async function AdGroupDetailPage({
         ]}
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">{adGroup} — {filter.label}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{adGroup} — {filter.label}</h1>
         <DateRangePicker basePath={basePath} current={filter} />
       </div>
 

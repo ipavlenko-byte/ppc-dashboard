@@ -77,7 +77,7 @@ export default async function TrafficReportPage() {
       </div>
 
       {months.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
           Нет данных — запустите syncTrafficByChannel в sync-ga4.gs (см. SETUP.md)
         </div>
       ) : (

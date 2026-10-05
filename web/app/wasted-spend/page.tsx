@@ -35,7 +35,7 @@ export default async function WastedSpendPage({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Слив бюджета — {filter.label}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Слив бюджета — {filter.label}</h1>
           <p className="mt-1 text-sm text-slate-500">
             Поисковые запросы с тратами ≥ HK${minCost} и без единой заявки — кандидаты в минус-слова.
           </p>

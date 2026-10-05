@@ -17,7 +17,7 @@ interface Point {
 
 export function TrendChart({ data }: { data: Point[] }) {
   return (
-    <div className="h-64 w-full rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="h-64 w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

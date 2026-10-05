@@ -33,7 +33,7 @@ export default async function LinkedInPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">LinkedIn Ads — {filter.label}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">LinkedIn Ads — {filter.label}</h1>
         <div className="flex flex-wrap items-center gap-3">
           {source === "mock" && (
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
@@ -45,7 +45,7 @@ export default async function LinkedInPage({
         </div>
       </div>
       {summaries.length === 0 && source === "sheets" ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
           Нет данных — синк ещё не запускался (см. SETUP.md, раздел LinkedIn Ads)
         </div>
       ) : (

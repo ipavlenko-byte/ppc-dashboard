@@ -54,12 +54,12 @@ export default async function LinkedInCampaignPage({
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: "LinkedIn Ads", href: "/linkedin" }, { label: campaign }]} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Креативы — {filter.label}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Креативы — {filter.label}</h1>
         <DateRangePicker basePath={basePath} current={filter} />
       </div>
 
       {summaries.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-400 shadow-sm">
           Нет данных за выбранный период
         </div>
       ) : (
@@ -73,7 +73,7 @@ export default async function LinkedInCampaignPage({
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {Array.from(audienceByDimension.entries()).map(([dimension, rows]) => (
-              <div key={dimension} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={dimension} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{dimension}</div>
                 <div className="mt-2 flex flex-col gap-1.5">
                   {rows.slice(0, 8).map((r) => (
@@ -96,7 +96,7 @@ export default async function LinkedInCampaignPage({
           <h2 className="text-sm font-semibold text-slate-600">Таргетинг аудитории</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {Array.from(targetingByFacet.entries()).map(([facetType, values]) => (
-              <div key={facetType} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={facetType} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   {facetType}
                 </div>

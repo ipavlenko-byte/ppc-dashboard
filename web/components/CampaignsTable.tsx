@@ -70,10 +70,10 @@ export function CampaignsTable({
           rows={csvRows}
         />
       </div>
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[1300px] text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">
+          <tr className="border-b-2 border-slate-200 bg-slate-100 text-left text-xs font-bold text-slate-600">
             <th className="px-4 py-3">Кампания</th>
             {cols.map((c) => (
               <th key={c.key} className="px-4 py-3 text-right">
@@ -91,7 +91,7 @@ export function CampaignsTable({
                 key={r.campaign}
                 title={flag?.reasons.join(" · ")}
                 className={clsx(
-                  "border-b border-slate-100 hover:bg-slate-50",
+                  "border-b border-slate-100 hover:bg-blue-50/60",
                   flag?.level === "critical" && "bg-red-50 hover:bg-red-100",
                   flag?.level === "warning" && "bg-amber-50 hover:bg-amber-100"
                 )}

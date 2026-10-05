@@ -27,7 +27,7 @@ export function LeadTrendChart({
   return (
     <div className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-slate-600">{title}</h3>
-      <div className="h-64 w-full rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="h-64 w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

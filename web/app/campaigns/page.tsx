@@ -50,7 +50,7 @@ export default async function CampaignsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Кампании — {filter.label}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Кампании — {filter.label}</h1>
         <DateRangePicker basePath="/campaigns" current={filter} />
       </div>
       <CampaignsTable

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 const adsLinks = [
   { href: "/", label: "Dashboard" },
@@ -31,6 +31,13 @@ const reportsLinks = [
 
 export function Sidebar() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const linkClass = (href: string) =>
+    `rounded-md px-3 py-2 text-sm font-medium ${
+      (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`))
+        ? "bg-blue-50 font-semibold text-blue-700"
+        : "text-slate-600 hover:bg-slate-100"
+    }`;
 
   // Переносим выбранный период (пресет или диапазон дат) на все разделы —
   // остальные параметры (campaign, minCost и т.п.) специфичны для конкретной
@@ -63,7 +70,7 @@ export function Sidebar() {
           <Link
             key={l.href}
             href={`${l.href}${suffix}`}
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            className={linkClass(l.href)}
           >
             {l.label}
           </Link>
@@ -78,7 +85,7 @@ export function Sidebar() {
           <Link
             key={l.href}
             href={`${l.href}${suffix}`}
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            className={linkClass(l.href)}
           >
             {l.label}
           </Link>
@@ -93,7 +100,7 @@ export function Sidebar() {
           <Link
             key={l.href}
             href={l.href}
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            className={linkClass(l.href)}
           >
             {l.label}
           </Link>

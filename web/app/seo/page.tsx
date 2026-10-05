@@ -75,7 +75,7 @@ export default async function SeoPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">SEO — {filter.label}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">SEO — {filter.label}</h1>
         <div className="flex flex-wrap items-center gap-3">
           {source === "mock" && (
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">

@@ -39,7 +39,7 @@ export default async function CampaignAdGroupsPage({
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: "Campaigns", href: "/campaigns" }, { label: campaign }]} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Группы объявлений — {filter.label}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Группы объявлений — {filter.label}</h1>
         <DateRangePicker basePath={basePath} current={filter} />
       </div>
       <MetricsTable
