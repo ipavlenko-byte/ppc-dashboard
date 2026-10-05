@@ -1,5 +1,6 @@
-import { TrafficBucketRows, AvgMarker } from "@/components/TrafficBucketRows";
+import { TrafficBucketRows, AvgMarker, PeakTag } from "@/components/TrafficBucketRows";
 import { getDashboardData } from "@/lib/dataSource";
+import { robustAvg } from "@/lib/robustAvg";
 import { fmtInt, fmtPct } from "@/lib/format";
 
 export const revalidate = 300;
@@ -71,17 +72,13 @@ export default async function TrafficReportPage() {
     </th>
   );
   const summaryByMonth = new Map(ga4TrafficSummary.map((r) => [r.yearMonth, r]));
-  const avgTotal = avgMonths.length
-    ? avgMonths.reduce((a, m) => a + (summaryByMonth.get(m)?.totalUsers ?? 0), 0) / avgMonths.length
-    : 0;
-  const avgBounceUsers = avgMonths.reduce((a, m) => a + (summaryByMonth.get(m)?.totalUsers ?? 0), 0);
-  const avgBounce =
-    avgBounceUsers > 0
-      ? avgMonths.reduce(
-          (a, m) => a + (summaryByMonth.get(m)?.bounceRate ?? 0) * (summaryByMonth.get(m)?.totalUsers ?? 0),
-          0
-        ) / avgBounceUsers
-      : 0;
+  // Среднее без аномальных пиков (см. lib/robustAvg.ts).
+  const totals = avgMonths.map((m) => summaryByMonth.get(m)?.totalUsers ?? 0);
+  const bounces = avgMonths.map((m) => summaryByMonth.get(m)?.bounceRate ?? 0);
+  const totalAvg = robustAvg(totals);
+  const bounceAvg = robustAvg(bounces, totals, 0.05);
+  const avgTotal = totalAvg.avg;
+  const avgBounce = bounceAvg.avg;
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,7 +86,7 @@ export default async function TrafficReportPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Traffic — последние {months.length || 12} мес.</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Пользователи по каналам, источник — Google Analytics (GA4). <span className="font-semibold text-emerald-600">▲</span> лучше и <span className="font-semibold text-red-500">▼</span> хуже среднего больше чем на 10% (для Bots и Bounce rate — наоборот).
+            Пользователи по каналам, источник — Google Analytics (GA4). <span className="font-semibold text-emerald-600">▲</span> лучше и <span className="font-semibold text-red-500">▼</span> хуже среднего больше чем на 10% (для Bots и Bounce rate — наоборот). Аномальные пики помечены «пик» и в среднее не входят.
           </p>
         </div>
         {source === "mock" && (
@@ -142,9 +139,12 @@ export default async function TrafficReportPage() {
                 <td className="bg-amber-100 px-4 py-3 text-right text-amber-900">{fmtInt(Math.round(avgTotal))}</td>
                 {months.map((m) => (
                   <td key={m} className="px-4 py-3 text-right">
-                    {months.indexOf(m) < avgCount && (
-                      <AvgMarker value={summaryByMonth.get(m)?.totalUsers ?? 0} avg={avgTotal} />
-                    )}
+                    {months.indexOf(m) < avgCount &&
+                      (totalAvg.outliers[months.indexOf(m)] ? (
+                        <PeakTag />
+                      ) : (
+                        <AvgMarker value={summaryByMonth.get(m)?.totalUsers ?? 0} avg={avgTotal} />
+                      ))}
                     {fmtInt(summaryByMonth.get(m)?.totalUsers ?? 0)}
                   </td>
                 ))}
@@ -156,9 +156,13 @@ export default async function TrafficReportPage() {
                   const br = summaryByMonth.get(m)?.bounceRate;
                   return (
                     <td key={m} className="px-4 py-3 text-right">
-                      {br !== undefined && months.indexOf(m) < avgCount && (
-                        <AvgMarker value={br} avg={avgBounce} higherIsBetter={false} />
-                      )}
+                      {br !== undefined &&
+                        months.indexOf(m) < avgCount &&
+                        (bounceAvg.outliers[months.indexOf(m)] ? (
+                          <PeakTag />
+                        ) : (
+                          <AvgMarker value={br} avg={avgBounce} higherIsBetter={false} />
+                        ))}
                       {br !== undefined ? fmtPct(br) : "—"}
                     </td>
                   );

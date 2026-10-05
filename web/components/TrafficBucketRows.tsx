@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { fmtInt } from "@/lib/format";
+import { robustAvg } from "@/lib/robustAvg";
 
 const DOT_COLORS: Record<string, string> = {
   Direct: "bg-slate-500",
@@ -49,8 +50,16 @@ export function AvgMarker({
   );
 }
 
-const avgOf = (values: number[], count: number) =>
-  count > 0 ? values.slice(0, count).reduce((a, b) => a + b, 0) / count : 0;
+export function PeakTag() {
+  return (
+    <span
+      title="Аномальный пик — не учитывается в среднем"
+      className="mr-1.5 rounded bg-slate-200 px-1 text-[10px] font-semibold text-slate-600"
+    >
+      пик
+    </span>
+  );
+}
 
 const AVG_CELL = "bg-amber-50 px-4 text-right font-semibold text-amber-900";
 
@@ -68,7 +77,8 @@ export function TrafficBucketRows({
   const [open, setOpen] = useState(false);
   const expandable = sources.length > 0;
   const higherIsBetter = bucket !== "Bots"; // для ботов рост — это плохо
-  const avg = avgOf(values, avgCount);
+  const main = robustAvg(values.slice(0, avgCount));
+  const avg = main.avg;
 
   return (
     <>
@@ -83,27 +93,32 @@ export function TrafficBucketRows({
           <span className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${DOT_COLORS[bucket] ?? "bg-slate-300"}`} />
           {bucket}
         </td>
-        <td className={`${AVG_CELL} py-2.5`}>{fmtInt(Math.round(avgOf(values, avgCount)))}</td>
+        <td className={`${AVG_CELL} py-2.5`}>{fmtInt(Math.round(avg))}</td>
         {values.map((v, i) => (
           <td key={i} className="px-4 py-2.5 text-right font-medium text-slate-800">
-            {i < avgCount && <AvgMarker value={v} avg={avg} higherIsBetter={higherIsBetter} />}
+            {i < avgCount &&
+              (main.outliers[i] ? <PeakTag /> : <AvgMarker value={v} avg={avg} higherIsBetter={higherIsBetter} />)}
             {fmtInt(v)}
           </td>
         ))}
       </tr>
       {open &&
-        sources.map((s) => (
+        sources.map((s) => {
+          const sr = robustAvg(s.values.slice(0, avgCount));
+          return (
           <tr key={s.source} className="border-b border-slate-50 bg-slate-50/40">
             <td className="sticky left-0 z-10 bg-slate-50 px-4 py-1.5 pl-10 text-slate-500">{s.source}</td>
-            <td className={`${AVG_CELL} py-1.5 font-medium`}>{fmtInt(Math.round(avgOf(s.values, avgCount)))}</td>
+            <td className={`${AVG_CELL} py-1.5 font-medium`}>{fmtInt(Math.round(sr.avg))}</td>
             {s.values.map((v, i) => (
               <td key={i} className="px-4 py-1.5 text-right text-slate-500">
-                {i < avgCount && <AvgMarker value={v} avg={avgOf(s.values, avgCount)} higherIsBetter={higherIsBetter} />}
+                {i < avgCount &&
+                  (sr.outliers[i] ? <PeakTag /> : <AvgMarker value={v} avg={sr.avg} higherIsBetter={higherIsBetter} />)}
                 {fmtInt(v)}
               </td>
             ))}
           </tr>
-        ))}
+          );
+        })}
     </>
   );
 }
