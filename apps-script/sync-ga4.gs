@@ -249,16 +249,23 @@ function syncAdGroupLevel(spreadsheet) {
   writeRows(sheet, rows, "ga4_ad_group_daily");
 }
 
+// Окно выгрузки; backfillGa4Engagement временно увеличивает его для разовой перезаписи истории.
+let ga4LookbackDays = LOOKBACK_DAYS;
+
+// "Время на сайте" = Average engagement time per session, как в отчётах GA4
+// (userEngagementDuration / sessions) — это активное время, а не разница между первым и
+// последним событием (averageSessionDuration), которая раздувается "забытыми" вкладками.
 function runGa4Report(dimensions) {
   const payload = {
-    dateRanges: [{ startDate: `${LOOKBACK_DAYS}daysAgo`, endDate: "yesterday" }],
+    dateRanges: [{ startDate: `${ga4LookbackDays}daysAgo`, endDate: "yesterday" }],
     dimensions,
     metrics: [
       { name: "bounceRate" },
       { name: "screenPageViewsPerSession" },
-      { name: "averageSessionDuration" },
+      { name: "userEngagementDuration" },
+      { name: "sessions" },
     ],
-    limit: 10000,
+    limit: 100000,
   };
 
   const url = `https://analyticsdata.googleapis.com/v1beta/properties/${GA4_PROPERTY_ID}:runReport`;
@@ -282,9 +289,35 @@ function runGa4Report(dimensions) {
     return {
       date,
       dims: r.dimensionValues.slice(1).map((d) => d.value),
-      metrics: r.metricValues.map((m) => m.value),
+      metrics: (() => {
+        const v = r.metricValues.map((m) => Number(m.value));
+        // [bounceRate, pagesPerSession, engagementSecPerSession]
+        return [v[0], v[1], v[3] > 0 ? v[2] / v[3] : 0];
+      })(),
     };
   });
+}
+
+// РАЗОВО: после смены метрики времени на сайте перезаписывает всю историю ga4_daily и
+// ga4_ad_group_daily новым расчётом (иначе старые дни остались бы со старой метрикой).
+function backfillGa4Engagement() {
+  const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+  ga4LookbackDays = 365;
+  const camp = runGa4Report([{ name: "date" }, { name: "sessionCampaignName" }]).map((r) => [
+    r.date, r.dims[0], Number(r.metrics[0]), Number(r.metrics[1]), Number(r.metrics[2]),
+  ]);
+  writeFullReplace(spreadsheet, "ga4_daily", ["date", "campaign", "bounceRate", "pagesPerSession", "avgSessionDurationSec"], camp);
+  const grp = runGa4Report([
+    { name: "date" }, { name: "sessionCampaignName" }, { name: "sessionGoogleAdsAdGroupName" },
+  ]).map((r) => [
+    r.date, r.dims[0], r.dims[1], Number(r.metrics[0]), Number(r.metrics[1]), Number(r.metrics[2]),
+  ]);
+  writeFullReplace(
+    spreadsheet,
+    "ga4_ad_group_daily",
+    ["date", "campaign", "adGroup", "bounceRate", "pagesPerSession", "avgSessionDurationSec"],
+    grp
+  );
 }
 
 function writeRows(sheet, rows, label) {
