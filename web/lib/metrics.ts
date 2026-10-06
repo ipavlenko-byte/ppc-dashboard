@@ -59,6 +59,7 @@ export function joinRows(
       bounceRate: ga4Row?.bounceRate ?? null,
       pagesPerSession: ga4Row?.pagesPerSession ?? null,
       avgSessionDurationSec: ga4Row?.avgSessionDurationSec ?? null,
+      ga4Sessions: ga4Row?.sessions ?? null,
       ctr: safeDiv(row.clicks, row.impressions),
       cpc: safeDiv(row.cost, row.clicks),
       cr: safeDiv(row.conversions, row.clicks),
@@ -173,13 +174,14 @@ export function summarizeByCampaign(rows: JoinedRow[]): CampaignSummary[] {
     existing.cost += r.cost;
     existing.conversions += r.conversions;
     existing.qualifiedLeads += r.qualifiedLeads;
-    // Взвешиваем GA4-метрики по кликам того дня, чтобы дни с большим трафиком
-    // влияли на средний показатель сильнее, чем дни почти без кликов.
-    if (r.bounceRate !== null && r.clicks > 0) {
-      existing.ga4Weight += r.clicks;
-      existing.bounceRateWeighted += r.bounceRate * r.clicks;
-      existing.pagesPerSessionWeighted += (r.pagesPerSession ?? 0) * r.clicks;
-      existing.avgSessionDurationWeighted += (r.avgSessionDurationSec ?? 0) * r.clicks;
+    // Взвешиваем GA4-метрики по сессиям того дня: Σ(среднее×сессии)/Σсессии — это ровно
+    // то, как считает сам GA4. Если сессий в Sheet ещё нет (старые строки) — клики как приближение.
+    const w = r.ga4Sessions ?? r.clicks;
+    if (r.bounceRate !== null && w > 0) {
+      existing.ga4Weight += w;
+      existing.bounceRateWeighted += r.bounceRate * w;
+      existing.pagesPerSessionWeighted += (r.pagesPerSession ?? 0) * w;
+      existing.avgSessionDurationWeighted += (r.avgSessionDurationSec ?? 0) * w;
     }
     applyLatestSnapshot(existing, r);
     map.set(r.campaign, existing);
@@ -196,11 +198,12 @@ export function grandTotal(rows: JoinedRow[]): CampaignSummary {
     a.cost += r.cost;
     a.conversions += r.conversions;
     a.qualifiedLeads += r.qualifiedLeads;
-    if (r.bounceRate !== null && r.clicks > 0) {
-      a.ga4Weight += r.clicks;
-      a.bounceRateWeighted += r.bounceRate * r.clicks;
-      a.pagesPerSessionWeighted += (r.pagesPerSession ?? 0) * r.clicks;
-      a.avgSessionDurationWeighted += (r.avgSessionDurationSec ?? 0) * r.clicks;
+    const w = r.ga4Sessions ?? r.clicks;
+    if (r.bounceRate !== null && w > 0) {
+      a.ga4Weight += w;
+      a.bounceRateWeighted += r.bounceRate * w;
+      a.pagesPerSessionWeighted += (r.pagesPerSession ?? 0) * w;
+      a.avgSessionDurationWeighted += (r.avgSessionDurationSec ?? 0) * w;
     }
     return a;
   }, emptyAccumulator("TOTAL"));
@@ -354,6 +357,7 @@ interface Ga4Metrics {
   bounceRate: number;
   pagesPerSession: number;
   avgSessionDurationSec: number;
+  sessions: number | null;
 }
 
 export function summarizeAdGroupsWithGa4(
@@ -383,11 +387,12 @@ export function summarizeAdGroupsWithGa4(
     existing.conversions += r.conversions;
 
     const ga4Row = ga4Map.get(`${r.date}__${r.campaign}__${r.adGroup}`);
-    if (ga4Row && r.clicks > 0) {
-      existing.ga4Weight += r.clicks;
-      existing.bounceRateWeighted += ga4Row.bounceRate * r.clicks;
-      existing.pagesPerSessionWeighted += ga4Row.pagesPerSession * r.clicks;
-      existing.avgSessionDurationWeighted += ga4Row.avgSessionDurationSec * r.clicks;
+    const w = ga4Row ? (ga4Row.sessions ?? r.clicks) : 0;
+    if (ga4Row && w > 0) {
+      existing.ga4Weight += w;
+      existing.bounceRateWeighted += ga4Row.bounceRate * w;
+      existing.pagesPerSessionWeighted += ga4Row.pagesPerSession * w;
+      existing.avgSessionDurationWeighted += ga4Row.avgSessionDurationSec * w;
     }
     map.set(key, existing);
   }

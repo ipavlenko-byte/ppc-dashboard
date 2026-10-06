@@ -100,6 +100,7 @@ export function generateMockGa4(ads: AdsDailyRow[]): Ga4DailyRow[] {
       bounceRate,
       pagesPerSession: Math.round((1.2 + rand() * 1.2) * 100) / 100,
       avgSessionDurationSec: Math.round(40 + rand() * 140),
+      sessions: null,
     };
   });
 }
@@ -291,6 +292,7 @@ export function generateMockGa4AdGroups(adGroups: AdGroupDailyRow[]): Ga4AdGroup
     bounceRate: Math.round((0.2 + rand() * 0.35) * 100) / 100,
     pagesPerSession: Math.round((1.1 + rand() * 1.3) * 100) / 100,
     avgSessionDurationSec: Math.round(35 + rand() * 150),
+    sessions: null,
   }));
 }
 

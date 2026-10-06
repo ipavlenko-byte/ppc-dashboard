@@ -208,7 +208,7 @@ function runGa4RawReport(dimensionNames, metricNames) {
 
 function syncCampaignLevel(spreadsheet) {
   const sheet = spreadsheet.getSheetByName("ga4_daily") || spreadsheet.insertSheet("ga4_daily");
-  ensureHeader(sheet, ["date", "campaign", "bounceRate", "pagesPerSession", "avgSessionDurationSec"]);
+  ensureHeader(sheet, ["date", "campaign", "bounceRate", "pagesPerSession", "avgSessionDurationSec", "sessions"]);
 
   const data = runGa4Report([{ name: "date" }, { name: "sessionCampaignName" }]);
   const rows = data.map((r) => [
@@ -217,6 +217,7 @@ function syncCampaignLevel(spreadsheet) {
     Number(r.metrics[0]),
     Number(r.metrics[1]),
     Number(r.metrics[2]),
+    Number(r.metrics[3]),
   ]);
   writeRows(sheet, rows, "ga4_daily");
 }
@@ -231,6 +232,7 @@ function syncAdGroupLevel(spreadsheet) {
     "bounceRate",
     "pagesPerSession",
     "avgSessionDurationSec",
+    "sessions",
   ]);
 
   const data = runGa4Report([
@@ -245,6 +247,7 @@ function syncAdGroupLevel(spreadsheet) {
     Number(r.metrics[0]),
     Number(r.metrics[1]),
     Number(r.metrics[2]),
+    Number(r.metrics[3]),
   ]);
   writeRows(sheet, rows, "ga4_ad_group_daily");
 }
@@ -291,8 +294,8 @@ function runGa4Report(dimensions) {
       dims: r.dimensionValues.slice(1).map((d) => d.value),
       metrics: (() => {
         const v = r.metricValues.map((m) => Number(m.value));
-        // [bounceRate, pagesPerSession, engagementSecPerSession]
-        return [v[0], v[1], v[3] > 0 ? v[2] / v[3] : 0];
+        // [bounceRate, pagesPerSession, engagementSecPerSession, sessions]
+        return [v[0], v[1], v[3] > 0 ? v[2] / v[3] : 0, v[3]];
       })(),
     };
   });
@@ -304,18 +307,18 @@ function backfillGa4Engagement() {
   const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
   ga4LookbackDays = 365;
   const camp = runGa4Report([{ name: "date" }, { name: "sessionCampaignName" }]).map((r) => [
-    r.date, r.dims[0], Number(r.metrics[0]), Number(r.metrics[1]), Number(r.metrics[2]),
+    r.date, r.dims[0], Number(r.metrics[0]), Number(r.metrics[1]), Number(r.metrics[2]), Number(r.metrics[3]),
   ]);
-  writeFullReplace(spreadsheet, "ga4_daily", ["date", "campaign", "bounceRate", "pagesPerSession", "avgSessionDurationSec"], camp);
+  writeFullReplace(spreadsheet, "ga4_daily", ["date", "campaign", "bounceRate", "pagesPerSession", "avgSessionDurationSec", "sessions"], camp);
   const grp = runGa4Report([
     { name: "date" }, { name: "sessionCampaignName" }, { name: "sessionGoogleAdsAdGroupName" },
   ]).map((r) => [
-    r.date, r.dims[0], r.dims[1], Number(r.metrics[0]), Number(r.metrics[1]), Number(r.metrics[2]),
+    r.date, r.dims[0], r.dims[1], Number(r.metrics[0]), Number(r.metrics[1]), Number(r.metrics[2]), Number(r.metrics[3]),
   ]);
   writeFullReplace(
     spreadsheet,
     "ga4_ad_group_daily",
-    ["date", "campaign", "adGroup", "bounceRate", "pagesPerSession", "avgSessionDurationSec"],
+    ["date", "campaign", "adGroup", "bounceRate", "pagesPerSession", "avgSessionDurationSec", "sessions"],
     grp
   );
 }

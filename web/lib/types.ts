@@ -17,6 +17,7 @@ export interface Ga4DailyRow {
   bounceRate: number; // 0-1
   pagesPerSession: number;
   avgSessionDurationSec: number;
+  sessions: number | null; // вес для усреднения: Σ(метрика×сессии)/Σсессии = точное значение GA4
 }
 
 export interface QualifiedLeadsRow {
@@ -102,6 +103,7 @@ export interface Ga4AdGroupDailyRow {
   bounceRate: number;
   pagesPerSession: number;
   avgSessionDurationSec: number;
+  sessions: number | null;
 }
 
 export interface GscQueryDailyRow {
@@ -196,6 +198,7 @@ export interface FunnelLeadsMonthlyRow {
 }
 
 export interface JoinedRow {
+  ga4Sessions: number | null;
   date: string;
   campaign: string;
   impressions: number;

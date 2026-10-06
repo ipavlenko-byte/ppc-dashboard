@@ -55,7 +55,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Порядок веток здесь определяет порядок значений в valueRanges ответа batchGet.
 const TAB_RANGES = {
   adsDaily: "ads_daily!A:J",
-  ga4Daily: "ga4_daily!A:E",
+  ga4Daily: "ga4_daily!A:F",
   qualifiedLeads: "qualified_leads!A:C",
   adGroupsDaily: "ad_groups_daily!A:G",
   keywordsDaily: "keywords_daily!A:I",
@@ -63,7 +63,7 @@ const TAB_RANGES = {
   searchTermsDaily: "search_terms_daily!A:H",
   deviceDaily: "device_daily!A:G",
   geoDaily: "geo_daily!A:G",
-  ga4AdGroupDaily: "ga4_ad_group_daily!A:F",
+  ga4AdGroupDaily: "ga4_ad_group_daily!A:G",
   landingPagesDaily: "landing_pages_daily!A:G",
   gscQueryDaily: "gsc_query_daily!A:F",
   gscPageDaily: "gsc_page_daily!A:F",
@@ -201,6 +201,7 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         bounceRate: num(r[2]),
         pagesPerSession: num(r[3]),
         avgSessionDurationSec: num(r[4]),
+        sessions: numOrNull(r[5]),
       })),
 
     qualifiedLeads: tabs.qualifiedLeads
@@ -297,6 +298,7 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         bounceRate: num(r[3]),
         pagesPerSession: num(r[4]),
         avgSessionDurationSec: num(r[5]),
+        sessions: numOrNull(r[6]),
       })),
 
     landingPagesDaily: tabs.landingPagesDaily
