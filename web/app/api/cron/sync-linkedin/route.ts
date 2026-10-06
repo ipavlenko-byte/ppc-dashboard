@@ -76,7 +76,10 @@ export async function GET(request: Request) {
   try {
     const accessToken = await refreshAccessToken();
     const adAccountId = requireEnv("LINKEDIN_AD_ACCOUNT_ID");
-    const { from, to } = lookbackRange(LOOKBACK_DAYS);
+    // ?days=N — разовый добор истории вручную (по умолчанию LOOKBACK_DAYS, как у крона).
+    const daysParam = Number(new URL(request.url).searchParams.get("days"));
+    const lookback = Number.isInteger(daysParam) && daysParam > 0 ? Math.min(daysParam, MAX_HISTORY_DAYS) : LOOKBACK_DAYS;
+    const { from, to } = lookbackRange(lookback);
     const costToHkd = await costToHkdMultiplier(accessToken, adAccountId);
 
     const [campaignPoints, creativePoints] = await Promise.all([
