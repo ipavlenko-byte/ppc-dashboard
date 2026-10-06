@@ -29,10 +29,14 @@ export default async function AdsMonthlyReportPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const sp = await searchParams;
-  const months = lastMonths(12);
-  const month = sp.month && months.includes(sp.month) ? sp.month : months[0];
-
   const { rows: allRows, source } = await getDashboardData();
+  // Предлагаем только месяцы, по которым в Sheet вообще есть данные (иначе список из 12
+  // месяцев вёл бы на пустые страницы), плюс текущий.
+  const firstDate = allRows.reduce((min, r) => (min === "" || r.date < min ? r.date : min), "");
+  const months = lastMonths(12).filter((m, i) => i === 0 || (firstDate !== "" && m >= firstDate.slice(0, 7)));
+  const month = sp.month && months.includes(sp.month) ? sp.month : months[0];
+  // Первый месяц с данными может быть неполным — честно предупреждаем.
+  const startsMidMonth = firstDate !== "" && month === firstDate.slice(0, 7) && firstDate.slice(8, 10) !== "01";
   const { from, to } = monthBounds(month);
   const rows = filterByRange(allRows, from, to);
   const summaries = summarizeByCampaign(rows);
@@ -51,6 +55,11 @@ export default async function AdsMonthlyReportPage({
           <MonthPicker months={months} current={month} basePath="/reports/ads-monthly" />
         </div>
       </div>
+      {startsMidMonth && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          Данные в Sheet начинаются с {firstDate} — этот месяц показан неполностью.
+        </div>
+      )}
       <CampaignsTable rows={summaries} total={total} />
     </div>
   );

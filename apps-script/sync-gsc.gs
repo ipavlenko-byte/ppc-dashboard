@@ -118,6 +118,17 @@ function gscSyncTotals(spreadsheet) {
   gscWriteReport(spreadsheet, "gsc_totals_daily", ["date", "clicks", "impressions", "ctr", "position"], rows);
 }
 
+// РАЗОВО: gsc_totals_daily накапливалась по 3 дня за запуск, поэтому истории там меньше,
+// чем в запросах/страницах. Эта функция один раз подтягивает тоталы за все GSC_MAX_HISTORY_DAYS.
+function backfillGscTotals() {
+  const spreadsheet = SpreadsheetApp.openById(GSC_SHEET_ID);
+  const today = new Date();
+  const endDate = gscShiftDate(today, -1);
+  const startDate = gscShiftDate(today, -GSC_MAX_HISTORY_DAYS);
+  const rows = gscRunReport(startDate, endDate, ["date"]);
+  gscWriteReport(spreadsheet, "gsc_totals_daily", ["date", "clicks", "impressions", "ctr", "position"], rows);
+}
+
 // Отдельно от gscSyncByDimension: тут 3 измерения (date+query+country), а не 2,
 // и мапить код страны нужно на 3-й колонке (индекс 2), а не на 2-й (индекс 1).
 function gscSyncQueryByCountry(spreadsheet) {

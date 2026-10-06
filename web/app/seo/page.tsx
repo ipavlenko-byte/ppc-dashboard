@@ -46,7 +46,13 @@ export default async function SeoPage({
   // сумма по queries всегда немного меньше настоящего тотала по сайту. Без фильтра
   // по стране (у тотала нет разбивки по гео) берём точный тотал из gsc_totals_daily —
   // это те же цифры, что "Total clicks/impressions" в самой Search Console.
-  const filteredTotals = country ? [] : applyDateFilter(gscTotals, filter);
+  // Тотал используем, только если он покрывает все дни периода (столько же дат, сколько в
+  // запросах) — иначе на 90/180 днях, где тоталы накоплены лишь за часть периода, KPI
+  // были бы занижены. В этом случае падаем обратно на сумму по запросам.
+  const dateCount = (rows: { date: string }[]) => new Set(rows.map((r) => r.date)).size;
+  const periodTotals = country ? [] : applyDateFilter(gscTotals, filter);
+  const totalsCoverPeriod = periodTotals.length > 0 && dateCount(periodTotals) >= dateCount(filteredQueries);
+  const filteredTotals = totalsCoverPeriod ? periodTotals : [];
   const totalsSource = country ? queryRows : filteredTotals.length > 0 ? gscTotals : queryRows;
   const useTotals = !country && filteredTotals.length > 0;
 
@@ -63,6 +69,8 @@ export default async function SeoPage({
     ? (() => {
         const prev = getPreviousPeriodBounds(bounds);
         const prevRows = filterByRange(totalsSource, prev.from, prev.to);
+        // Прошлый период по тоталам тоже должен быть покрыт полностью, иначе сравнение обманчиво.
+        if (useTotals && dateCount(prevRows) < dateCount(filterByRange(queryRows, prev.from, prev.to))) return null;
         const prevSummary = useTotals
           ? summarizeSeo(prevRows, () => "site")[0]
           : grandTotalSeo(summarizeSeo(prevRows as typeof queryRows, (r) => r.query));
