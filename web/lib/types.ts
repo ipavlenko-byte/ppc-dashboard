@@ -178,6 +178,17 @@ export interface Ga4TrafficSourceMonthlyRow {
   users: number;
 }
 
+// Трафик из рекламы в ChatGPT (utm_source=chatgpt_ads) — только из GA4, расходов нет.
+export interface ChatgptAdsDailyRow {
+  date: string;
+  campaign: string; // utm_campaign = id кампании в OpenAI Ads
+  sessions: number;
+  users: number;
+  engagedSessions: number;
+  engagementSec: number; // суммарное время вовлечённости, секунды
+  keyEvents: number;
+}
+
 export interface Ga4TrafficSummaryMonthlyRow {
   yearMonth: string;
   totalUsers: number;

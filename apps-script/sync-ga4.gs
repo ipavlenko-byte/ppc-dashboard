@@ -43,6 +43,46 @@ function syncGa4() {
   syncCampaignLevel(spreadsheet);
   syncAdGroupLevel(spreadsheet);
   syncTrafficByChannel(spreadsheet);
+  syncChatgptAds(spreadsheet);
+}
+
+// Реклама в ChatGPT (OpenAI Ads): ссылки идут с utm_source=chatgpt_ads&utm_campaign={campaign_id}.
+// В GA4 это sessionSource = "chatgpt_ads", sessionCampaignName = id кампании. Расходов у нас нет
+// (у OpenAI нет API, который мы тянем), поэтому берём только трафик и вовлечённость из GA4.
+// Объём крошечный — каждый запуск полностью перезаписываем вкладку за последние 120 дней.
+const CHATGPT_ADS_SOURCE = "chatgpt_ads";
+
+function syncChatgptAds(spreadsheet) {
+  const data = runGa4RawReport(
+    ["date", "sessionCampaignName"],
+    ["sessions", "totalUsers", "engagedSessions", "userEngagementDuration", "keyEvents"],
+    {
+      filter: { fieldName: "sessionSource", stringFilter: { matchType: "CONTAINS", value: CHATGPT_ADS_SOURCE } },
+      startDate: "120daysAgo",
+    }
+  );
+  const rows = data
+    .map((r) => {
+      const raw = r.dims[0]; // YYYYMMDD
+      const date = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+      const sessions = Number(r.metrics[0]);
+      return [
+        date,
+        r.dims[1],
+        sessions,
+        Number(r.metrics[1]),
+        Number(r.metrics[2]),
+        Number(r.metrics[3]), // суммарные секунды вовлечённости — среднее считает дашборд как Σсек/Σсессии
+        Number(r.metrics[4]),
+      ];
+    })
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  writeFullReplace(
+    spreadsheet,
+    "ga4_chatgpt_ads_daily",
+    ["date", "campaign", "sessions", "users", "engagedSessions", "engagementSec", "keyEvents"],
+    rows
+  );
 }
 
 // Отчёт "Traffic": пользователи по каналам, помесячно, за весь сайт (не только
@@ -177,13 +217,15 @@ function writeFullReplace(spreadsheet, tabName, header, rows) {
 // В отличие от runGa4Report (заточен под первую колонку "date" в формате YYYYMMDD),
 // этот хелпер ничего не знает о смысле измерений — используется для помесячных
 // отчётов, где первая колонка "yearMonth", а не "date".
-function runGa4RawReport(dimensionNames, metricNames) {
+function runGa4RawReport(dimensionNames, metricNames, options) {
+  const opts = options || {};
   const payload = {
-    dateRanges: [{ startDate: "400daysAgo", endDate: "today" }],
+    dateRanges: [{ startDate: opts.startDate || "400daysAgo", endDate: "today" }],
     dimensions: dimensionNames.map((name) => ({ name })),
     metrics: metricNames.map((name) => ({ name })),
     limit: 100000,
   };
+  if (opts.filter) payload.dimensionFilter = { filter: opts.filter };
 
   const url = `https://analyticsdata.googleapis.com/v1beta/properties/${GA4_PROPERTY_ID}:runReport`;
   const response = UrlFetchApp.fetch(url, {

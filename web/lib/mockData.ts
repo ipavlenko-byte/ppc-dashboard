@@ -18,6 +18,7 @@ import {
   GscTotalsDailyRow,
   Ga4TrafficMonthlyRow,
   Ga4TrafficSourceMonthlyRow,
+  ChatgptAdsDailyRow,
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
@@ -561,6 +562,30 @@ export function generateMockGa4TrafficSources(rows: Ga4TrafficMonthlyRow[]): Ga4
     }
   }
   return out;
+}
+
+export function generateMockChatgptAds(days = 30): ChatgptAdsDailyRow[] {
+  const rand = seedRandom(97);
+  const rows: ChatgptAdsDailyRow[] = [];
+  const campaigns = ["cmpn_demo_localization", "cmpn_demo_art"];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const date = d.toISOString().slice(0, 10);
+    for (const campaign of campaigns) {
+      const sessions = Math.round(2 + rand() * 12);
+      rows.push({
+        date,
+        campaign,
+        sessions,
+        users: Math.max(1, sessions - Math.round(rand() * 2)),
+        engagedSessions: Math.round(sessions * (0.4 + rand() * 0.4)),
+        engagementSec: Math.round(sessions * (20 + rand() * 60)),
+        keyEvents: rand() > 0.85 ? 1 : 0,
+      });
+    }
+  }
+  return rows;
 }
 
 export function generateMockGa4TrafficSummary(rows: Ga4TrafficMonthlyRow[]): Ga4TrafficSummaryMonthlyRow[] {

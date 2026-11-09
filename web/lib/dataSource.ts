@@ -18,6 +18,7 @@ import {
   GscTotalsDailyRow,
   Ga4TrafficMonthlyRow,
   Ga4TrafficSourceMonthlyRow,
+  ChatgptAdsDailyRow,
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
@@ -48,6 +49,7 @@ import {
   generateMockGscTotals,
   generateMockGa4Traffic,
   generateMockGa4TrafficSources,
+  generateMockChatgptAds,
   generateMockGa4TrafficSummary,
   generateMockFunnelMonthly,
   generateMockFunnelLeadsMonthly,
@@ -78,6 +80,7 @@ export interface DashboardData {
   gscTotals: GscTotalsDailyRow[];
   ga4Traffic: Ga4TrafficMonthlyRow[];
   ga4TrafficSources: Ga4TrafficSourceMonthlyRow[];
+  chatgptAds: ChatgptAdsDailyRow[];
   ga4TrafficSummary: Ga4TrafficSummaryMonthlyRow[];
   funnelMonthly: FunnelMonthlyRow[];
   funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
@@ -110,6 +113,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       gscTotals: data.gscTotalsDaily,
       ga4Traffic: data.ga4TrafficMonthly,
       ga4TrafficSources: data.ga4TrafficSourcesMonthly,
+      chatgptAds: data.chatgptAdsDaily,
       ga4TrafficSummary: data.ga4TrafficSummaryMonthly,
       funnelMonthly: data.funnelMonthly,
       funnelLeadsMonthly: data.funnelLeadsMonthly,
@@ -168,6 +172,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     gscTotals,
     ga4Traffic,
     ga4TrafficSources,
+    chatgptAds: generateMockChatgptAds(30),
     ga4TrafficSummary,
     funnelMonthly,
     funnelLeadsMonthly,

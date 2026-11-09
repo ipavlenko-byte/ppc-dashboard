@@ -19,6 +19,7 @@ import {
   GscTotalsDailyRow,
   Ga4TrafficMonthlyRow,
   Ga4TrafficSourceMonthlyRow,
+  ChatgptAdsDailyRow,
   Ga4TrafficSummaryMonthlyRow,
   FunnelMonthlyRow,
   FunnelLeadsMonthlyRow,
@@ -73,6 +74,7 @@ const TAB_RANGES = {
   gscTotalsDaily: "gsc_totals_daily!A:E",
   ga4TrafficMonthly: "ga4_traffic_monthly!A:C",
   ga4TrafficSourcesMonthly: "ga4_traffic_sources_monthly!A:D",
+  chatgptAdsDaily: "ga4_chatgpt_ads_daily!A:G",
   ga4TrafficSummaryMonthly: "ga4_traffic_summary_monthly!A:C",
   funnelMonthly: "funnel_monthly!A:C",
   funnelLeadsMonthly: "funnel_leads_monthly!A:D",
@@ -164,6 +166,7 @@ export interface AllSheetData {
   gscTotalsDaily: GscTotalsDailyRow[];
   ga4TrafficMonthly: Ga4TrafficMonthlyRow[];
   ga4TrafficSourcesMonthly: Ga4TrafficSourceMonthlyRow[];
+  chatgptAdsDaily: ChatgptAdsDailyRow[];
   ga4TrafficSummaryMonthly: Ga4TrafficSummaryMonthlyRow[];
   funnelMonthly: FunnelMonthlyRow[];
   funnelLeadsMonthly: FunnelLeadsMonthlyRow[];
@@ -394,6 +397,18 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         bucket: r[1],
         source: r[2],
         users: num(r[3]),
+      })),
+
+    chatgptAdsDaily: tabs.chatgptAdsDaily
+      .filter((r) => r[0] && r[1])
+      .map((r) => ({
+        date: r[0],
+        campaign: r[1],
+        sessions: num(r[2]),
+        users: num(r[3]),
+        engagedSessions: num(r[4]),
+        engagementSec: num(r[5]),
+        keyEvents: num(r[6]),
       })),
 
     ga4TrafficSummaryMonthly: tabs.ga4TrafficSummaryMonthly
