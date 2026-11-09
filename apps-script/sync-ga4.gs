@@ -36,6 +36,8 @@ const GA4_AI_SOURCES = [
   "you.com",
   "copilot.com",
   "openai",
+  "chatgpt", // платная реклама в ChatGPT (utm_source=chatgpt&utm_medium=paid)
+  "chatgpt_ads",
 ];
 
 function syncGa4() {
@@ -46,18 +48,26 @@ function syncGa4() {
   syncChatgptAds(spreadsheet);
 }
 
-// Реклама в ChatGPT (OpenAI Ads): ссылки идут с utm_source=chatgpt_ads&utm_campaign={campaign_id}.
-// В GA4 это sessionSource = "chatgpt_ads", sessionCampaignName = id кампании. Расходов у нас нет
-// (у OpenAI нет API, который мы тянем), поэтому берём только трафик и вовлечённость из GA4.
-// Объём крошечный — каждый запуск полностью перезаписываем вкладку за последние 120 дней.
-const CHATGPT_ADS_SOURCE = "chatgpt_ads";
-
+// Реклама в ChatGPT (OpenAI Ads): в объявлениях стоит
+//   utm_source=chatgpt&utm_medium=paid&utm_campaign={campaign_id}&utm_content={ad_id}
+// (ранее проверяли и вариант utm_source=chatgpt_ads — ловим оба). В GA4: sessionSource = "chatgpt"
+// (ТОЧНОЕ совпадение — не путать с органикой chatgpt.com), sessionCampaignName = id кампании,
+// sessionManualAdContent = id объявления. Расходов нет (у OpenAI нет API, который мы тянем),
+// поэтому берём трафик и вовлечённость из GA4. Объём крошечный — каждый запуск полностью
+// перезаписываем вкладку за последние 120 дней.
 function syncChatgptAds(spreadsheet) {
   const data = runGa4RawReport(
-    ["date", "sessionCampaignName"],
+    ["date", "sessionCampaignName", "sessionManualAdContent"],
     ["sessions", "totalUsers", "engagedSessions", "userEngagementDuration", "keyEvents"],
     {
-      filter: { fieldName: "sessionSource", stringFilter: { matchType: "CONTAINS", value: CHATGPT_ADS_SOURCE } },
+      filterExpression: {
+        orGroup: {
+          expressions: [
+            { filter: { fieldName: "sessionSource", stringFilter: { matchType: "EXACT", value: "chatgpt" } } },
+            { filter: { fieldName: "sessionSource", stringFilter: { matchType: "CONTAINS", value: "chatgpt_ads" } } },
+          ],
+        },
+      },
       startDate: "120daysAgo",
     }
   );
@@ -65,22 +75,22 @@ function syncChatgptAds(spreadsheet) {
     .map((r) => {
       const raw = r.dims[0]; // YYYYMMDD
       const date = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
-      const sessions = Number(r.metrics[0]);
       return [
         date,
         r.dims[1],
-        sessions,
+        Number(r.metrics[0]),
         Number(r.metrics[1]),
         Number(r.metrics[2]),
         Number(r.metrics[3]), // суммарные секунды вовлечённости — среднее считает дашборд как Σсек/Σсессии
         Number(r.metrics[4]),
+        r.dims[2], // utm_content = id объявления
       ];
     })
     .sort((a, b) => a[0].localeCompare(b[0]));
   writeFullReplace(
     spreadsheet,
     "ga4_chatgpt_ads_daily",
-    ["date", "campaign", "sessions", "users", "engagedSessions", "engagementSec", "keyEvents"],
+    ["date", "campaign", "sessions", "users", "engagedSessions", "engagementSec", "keyEvents", "ad"],
     rows
   );
 }
@@ -225,7 +235,7 @@ function runGa4RawReport(dimensionNames, metricNames, options) {
     metrics: metricNames.map((name) => ({ name })),
     limit: 100000,
   };
-  if (opts.filter) payload.dimensionFilter = { filter: opts.filter };
+  if (opts.filterExpression) payload.dimensionFilter = opts.filterExpression;
 
   const url = `https://analyticsdata.googleapis.com/v1beta/properties/${GA4_PROPERTY_ID}:runReport`;
   const response = UrlFetchApp.fetch(url, {

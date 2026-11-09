@@ -187,6 +187,7 @@ export interface ChatgptAdsDailyRow {
   engagedSessions: number;
   engagementSec: number; // суммарное время вовлечённости, секунды
   keyEvents: number;
+  ad: string; // utm_content = id объявления
 }
 
 export interface Ga4TrafficSummaryMonthlyRow {

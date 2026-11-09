@@ -74,7 +74,7 @@ const TAB_RANGES = {
   gscTotalsDaily: "gsc_totals_daily!A:E",
   ga4TrafficMonthly: "ga4_traffic_monthly!A:C",
   ga4TrafficSourcesMonthly: "ga4_traffic_sources_monthly!A:D",
-  chatgptAdsDaily: "ga4_chatgpt_ads_daily!A:G",
+  chatgptAdsDaily: "ga4_chatgpt_ads_daily!A:H",
   ga4TrafficSummaryMonthly: "ga4_traffic_summary_monthly!A:C",
   funnelMonthly: "funnel_monthly!A:C",
   funnelLeadsMonthly: "funnel_leads_monthly!A:D",
@@ -409,6 +409,7 @@ export async function fetchAllSheetData(): Promise<AllSheetData> {
         engagedSessions: num(r[4]),
         engagementSec: num(r[5]),
         keyEvents: num(r[6]),
+        ad: r[7] ?? "",
       })),
 
     ga4TrafficSummaryMonthly: tabs.ga4TrafficSummaryMonthly

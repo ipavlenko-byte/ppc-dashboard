@@ -582,6 +582,7 @@ export function generateMockChatgptAds(days = 30): ChatgptAdsDailyRow[] {
         engagedSessions: Math.round(sessions * (0.4 + rand() * 0.4)),
         engagementSec: Math.round(sessions * (20 + rand() * 60)),
         keyEvents: rand() > 0.85 ? 1 : 0,
+        ad: `ad_${Math.floor(rand() * 3) + 1}`,
       });
     }
   }

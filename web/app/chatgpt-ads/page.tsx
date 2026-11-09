@@ -66,6 +66,7 @@ export default async function ChatgptAdsPage({
 
   const rows = applyDateFilter(chatgptAds, filter);
   const campaigns = aggregate(rows, (r) => r.campaign);
+  const ads = aggregate(rows, (r) => `${r.campaign} / ${r.ad || "(без utm_content)"}`);
   const daily = aggregate(rows, (r) => r.date).sort((a, b) => b.name.localeCompare(a.name));
   const total = aggregate(rows, () => "ВСЕГО")[0];
   const hasUnresolved = campaigns.some((c) => isUnresolvedMacro(c.name));
@@ -76,7 +77,7 @@ export default async function ChatgptAdsPage({
         <div>
           <h1 className="text-2xl font-bold text-slate-900">ChatGPT Ads — {filter.label}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Трафик с utm_source=chatgpt_ads (Google Analytics, GA4). Расходы и показы OpenAI сюда не попадают — их нет
+            Трафик с utm_source=chatgpt, utm_medium=paid (Google Analytics, GA4). Расходы и показы OpenAI сюда не попадают — их нет
             в GA4.
           </p>
         </div>
@@ -157,6 +158,38 @@ export default async function ChatgptAdsPage({
                       <td className="px-4 py-2.5 text-right text-xs text-slate-500">
                         {c.firstDate === c.lastDate ? c.firstDate : `${c.firstDate} – ${c.lastDate}`}
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <h2 className="text-sm font-semibold text-slate-600">По объявлениям (utm_content = ad_id)</h2>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full min-w-[700px] text-sm tabular-nums">
+                <thead>
+                  <tr>
+                    <th className={`${HEAD} text-left`}>Кампания / объявление</th>
+                    <th className={`${HEAD} text-right`}>Сессии</th>
+                    <th className={`${HEAD} text-right`}>Вовлечённость</th>
+                    <th className={`${HEAD} text-right`}>Время на сайте</th>
+                    <th className={`${HEAD} text-right`}>Key events</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ads.map((a) => (
+                    <tr key={a.name} className="border-b border-slate-100 hover:bg-blue-50/60">
+                      <td className="px-4 py-2.5 font-medium text-slate-800">{a.name}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold">{fmtInt(a.sessions)}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        {engagementRate(a) === null ? "—" : fmtPct(engagementRate(a)!)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        {avgEngagement(a) === null ? "—" : fmtDuration(avgEngagement(a)!)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">{fmtInt(a.keyEvents)}</td>
                     </tr>
                   ))}
                 </tbody>
